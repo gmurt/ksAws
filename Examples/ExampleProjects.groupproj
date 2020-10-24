@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{31A1452C-233D-44D2-AF51-EC17B775969F}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="ListBuckets\ListBuckets.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="VerifiedSenders\VerifiedSenders.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="ListBuckets">
+        <MSBuild Projects="ListBuckets\ListBuckets.dproj"/>
+    </Target>
+    <Target Name="ListBuckets:Clean">
+        <MSBuild Projects="ListBuckets\ListBuckets.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="ListBuckets:Make">
+        <MSBuild Projects="ListBuckets\ListBuckets.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="VerifiedSenders">
+        <MSBuild Projects="VerifiedSenders\VerifiedSenders.dproj"/>
+    </Target>
+    <Target Name="VerifiedSenders:Clean">
+        <MSBuild Projects="VerifiedSenders\VerifiedSenders.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="VerifiedSenders:Make">
+        <MSBuild Projects="VerifiedSenders\VerifiedSenders.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="ListBuckets;VerifiedSenders"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="ListBuckets:Clean;VerifiedSenders:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="ListBuckets:Make;VerifiedSenders:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

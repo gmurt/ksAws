@@ -1,0 +1,163 @@
+object Form10: TForm10
+  Left = 0
+  Top = 0
+  Caption = 'Form10'
+  ClientHeight = 449
+  ClientWidth = 809
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  Font.Style = []
+  OldCreateOrder = False
+  OnCreate = FormCreate
+  PixelsPerInch = 96
+  TextHeight = 13
+  object Splitter1: TSplitter
+    Left = 185
+    Top = 49
+    Width = 8
+    Height = 400
+    Beveled = True
+    ExplicitLeft = 193
+    ExplicitTop = 41
+    ExplicitHeight = 330
+  end
+  object Panel1: TPanel
+    Left = 0
+    Top = 49
+    Width = 185
+    Height = 400
+    Align = alLeft
+    BevelOuter = bvNone
+    TabOrder = 0
+    object Label1: TLabel
+      Left = 0
+      Top = 0
+      Width = 185
+      Height = 35
+      Align = alTop
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'BUCKETS'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -13
+      Font.Name = 'Arial'
+      Font.Style = [fsBold]
+      ParentFont = False
+      Layout = tlCenter
+      ExplicitLeft = 2
+      ExplicitTop = -6
+    end
+    object ListBox1: TListBox
+      Left = 0
+      Top = 35
+      Width = 193
+      Height = 365
+      Style = lbOwnerDrawFixed
+      Align = alLeft
+      ItemHeight = 21
+      TabOrder = 0
+      OnClick = ListBox1Click
+    end
+  end
+  object Panel2: TPanel
+    Left = 535
+    Top = 49
+    Width = 274
+    Height = 400
+    Align = alRight
+    BevelOuter = bvNone
+    TabOrder = 1
+    object Label2: TLabel
+      Left = 0
+      Top = 0
+      Width = 274
+      Height = 35
+      Align = alTop
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'OBJECT DETAILS'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -13
+      Font.Name = 'Arial'
+      Font.Style = [fsBold]
+      ParentFont = False
+      Layout = tlCenter
+      ExplicitLeft = 6
+      ExplicitWidth = 231
+    end
+    object ListBox3: TListBox
+      Left = 0
+      Top = 35
+      Width = 274
+      Height = 365
+      Style = lbOwnerDrawFixed
+      Align = alClient
+      ItemHeight = 21
+      TabOrder = 0
+    end
+  end
+  object Panel3: TPanel
+    Left = 193
+    Top = 49
+    Width = 342
+    Height = 400
+    Align = alClient
+    BevelOuter = bvNone
+    TabOrder = 2
+    object Label3: TLabel
+      Left = 0
+      Top = 0
+      Width = 342
+      Height = 35
+      Align = alTop
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'OBJECTS'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -13
+      Font.Name = 'Arial'
+      Font.Style = [fsBold]
+      ParentFont = False
+      Layout = tlCenter
+      ExplicitTop = 8
+      ExplicitWidth = 338
+    end
+    object ListBox2: TListBox
+      Left = 0
+      Top = 35
+      Width = 342
+      Height = 365
+      Style = lbOwnerDrawFixed
+      Align = alClient
+      ItemHeight = 21
+      TabOrder = 0
+      OnClick = ListBox2Click
+    end
+  end
+  object Panel4: TPanel
+    Left = 0
+    Top = 0
+    Width = 809
+    Height = 49
+    Align = alTop
+    BevelOuter = bvNone
+    BorderWidth = 4
+    TabOrder = 3
+    object Button1: TButton
+      Left = 4
+      Top = 4
+      Width = 801
+      Height = 41
+      Align = alClient
+      Caption = 'List Buckets'
+      TabOrder = 0
+      OnClick = Button1Click
+    end
+  end
+end
