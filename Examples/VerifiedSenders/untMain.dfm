@@ -32,14 +32,4 @@ object Form10: TForm10
     TabOrder = 1
     OnClick = btnGetVerifiedSendersClick
   end
-  object IdSSLIOHandlerSocketOpenSSL1: TIdSSLIOHandlerSocketOpenSSL
-    MaxLineAction = maException
-    Port = 0
-    DefaultPort = 0
-    SSLOptions.Mode = sslmUnassigned
-    SSLOptions.VerifyMode = []
-    SSLOptions.VerifyDepth = 0
-    Left = 136
-    Top = 104
-  end
 end
