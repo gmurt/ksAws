@@ -22,7 +22,6 @@
 *                                                                              *
 *******************************************************************************}
 
-
 unit ksAwsSes;
 
 interface
@@ -31,15 +30,35 @@ uses
   Sysutils, Classes, ksAwsBase;
 
 type
-
+  IksAwsSesMessage = interface
+  ['{A58BC820-722F-4E68-8DE6-029A007FA29F}']
+    function GetBcc: TStrings;
+    function GetBody: string;
+    function GetCc: TStrings;
+    function GetRecipients: TStrings;
+    function GetSender: string;
+    function GetSubject: string;
+    procedure SetBody(const Value: string);
+    procedure SetSender(const Value: string);
+    procedure SetSubject(const Value: string);
+    property Sender: string read GetSender write SetSender;
+    property Recipients: TStrings read GetRecipients;
+    property CC: TStrings read GetCc;
+    property Bcc: TStrings read GetBcc;
+    property Subject: string read GetSubject write SetSubject;
+    property Body: string read GetBody write SetBody;
+  end;
 
   IksAwsSES = interface
   ['{95F8984E-2A05-4071-B906-67CDBCBEA51A}']
     procedure GetSenders(ASenders: TStrings; const ALimit: integer = 0);
+    procedure DeleteIdentity(AIdentity: string);
+    procedure SendEmail(AMessage: IksAwsSesMessage);
     procedure VerifyEmailIdentity(AEmailAddress: string);
   end;
 
   function CreateSes(APublicKey, APrivateKey: string; ARegion: TksAwsRegion): IksAwsSES;
+  function CreateSesMessage(ARecipient, ASender, ASubject, ABody: string): IksAwsSesMessage;
 
 
 implementation
@@ -48,12 +67,45 @@ uses ksAwsConst, Net.HttpClient, Xml.xmldom, Xml.XMLIntf, Xml.XMLDoc, System.Net
   Math;
 
 type
+  TksAwsSesMessage = class(TInterfacedObject, IksAwsSesMessage)
+  private
+    FSender: string;
+    FSubject: string;
+    FBody: string;
+    FRecipients: TStrings;
+    FCc: TStrings;
+    FBcc: TStrings;
+
+    function GetBcc: TStrings;
+    function GetBody: string;
+    function GetCc: TStrings;
+    function GetRecipients: TStrings;
+    function GetSender: string;
+    function GetSubject: string;
+    procedure SetBody(const Value: string);
+    procedure SetSender(const Value: string);
+    procedure SetSubject(const Value: string);
+  protected
+    property Sender: string read GetSender write SetSender;
+    property Recipients: TStrings read GetRecipients;
+    property CC: TStrings read GetCc;
+    property Bcc: TStrings read GetBcc;
+    property Subject: string read GetSubject write SetSubject;
+    property Body: string read GetBody write SetBody;
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+  end;
+
   TksAwsSES = class(TksAwsBaseService, IksAwsSES)
   private
+    function BuildDestinationParams(AName: string; ARecipients, AParams: TStrings): string;
     { Private declarations }
   protected
     function GetServiceName: string; override;
+    procedure DeleteIdentity(AIdentity: string);
     procedure GetSenders(ASenders: TStrings; const AMaxItems: integer = 0);
+    procedure SendEmail(AMessage: IksAwsSesMessage);
     procedure VerifyEmailIdentity(AEmailAddress: string);
   public
     { Public declarations }
@@ -65,8 +117,105 @@ begin
   Result := TksAwsSES.Create(APublicKey, APrivateKey, ARegion);
 end;
 
+function CreateSesMessage(ARecipient, ASender, ASubject, ABody: string): IksAwsSesMessage;
+begin
+  Result := TksAwsSesMessage.Create;
+  Result.Recipients.Add(ARecipient);
+  Result.Sender := ASender;
+  Result.Subject := ASubject;
+  Result.Body := ABody;
+end;
+
+{ TksAwsSesMessage }
+
+constructor TksAwsSesMessage.Create;
+begin
+  FRecipients := TStringList.Create;
+  FCc := TStringList.Create;
+  FBcc := TStringList.Create;
+end;
+
+destructor TksAwsSesMessage.Destroy;
+begin
+  FRecipients.Free;
+  FCc.Free;
+  FBcc.Free;
+  inherited;
+end;
+
+function TksAwsSesMessage.GetBcc: TStrings;
+begin
+  Result := FBcc;
+end;
+
+function TksAwsSesMessage.GetBody: string;
+begin
+  Result := FBody;
+end;
+
+function TksAwsSesMessage.GetCc: TStrings;
+begin
+  Result := FCc;
+end;
+
+function TksAwsSesMessage.GetRecipients: TStrings;
+begin
+  Result := FRecipients;
+end;
+
+function TksAwsSesMessage.GetSender: string;
+begin
+  Result := FSender;
+end;
+
+function TksAwsSesMessage.GetSubject: string;
+begin
+  Result := FSubject;
+end;
+
+
+procedure TksAwsSesMessage.SetBody(const Value: string);
+begin
+  FBody := Value;
+end;
+
+procedure TksAwsSesMessage.SetSender(const Value: string);
+begin
+  FSender := Value;
+end;
+
+procedure TksAwsSesMessage.SetSubject(const Value: string);
+begin
+  FSubject := Value;
+end;
 
 { TksAwsSES }
+
+procedure TksAwsSES.DeleteIdentity(AIdentity: string);
+var
+  AParams: TStrings;
+begin
+  AParams := TStringList.Create;
+  try
+    AParams.Values['Action'] := 'DeleteIdentity';
+    AParams.Values['Identity'] := AIdentity;
+    ExecuteHttp('DELETE', Host, '', '', nil, AParams);
+  finally
+    AParams.Free;
+  end;
+end;
+
+function TksAwsSES.BuildDestinationParams(AName: string; ARecipients, AParams: TStrings): string;
+var
+  ICount: integer;
+  AKey: string;
+begin
+  if LowerCase(AName) = 'to' then AKey := 'ToAddresses';
+  if LowerCase(AName) = 'cc' then AKey := 'CcAddresses';
+  if LowerCase(AName) = 'bcc' then AKey := 'BccAddresses';
+  for ICount := 1 to ARecipients.Count do
+    AParams.Values['Destination.'+AKey+'.member.'+IntToStr(ICount)] := ARecipients[ICount-1];
+end;
 
 procedure TksAwsSES.GetSenders(ASenders: TStrings; const AMaxItems: integer = 0);
 var
@@ -118,6 +267,26 @@ begin
   Result := C_SERVICE_SES;
 end;
 
+procedure TksAwsSES.SendEmail(AMessage: IksAwsSesMessage);
+var
+  AResponse: string;
+  AParams: TStrings;
+begin
+  AParams := TStringList.Create;
+  try
+    AParams.Values['Action'] := 'SendEmail';
+    AParams.Values['Source'] := AMessage.Sender;
+    BuildDestinationParams('to', AMessage.Recipients, AParams);
+    BuildDestinationParams('cc', AMessage.CC, AParams);
+    BuildDestinationParams('bcc', AMessage.Bcc, AParams);
+    AParams.Values['Message.Subject.Data'] := AMessage.Subject;
+    AParams.Values['Message.Body.Text.Data'] := AMessage.Body;
+    AResponse := ExecuteHttp('POST', Host, '', '', nil, AParams).ContentText;
+  finally
+    AParams.Free;
+  end;
+end;
+
 procedure TksAwsSES.VerifyEmailIdentity(AEmailAddress: string);
 var
   AResponse: string;
@@ -126,12 +295,13 @@ begin
   AParams := TStringList.Create;
   try
     AParams.Values['Action'] := 'VerifyEmailIdentity';
-    AParams.Values['EmailAddress'] := StringReplace(AEmailAddress, '@', '%40', []);// TNetEncoding.URL.Encode(AEmailAddress);
+    AParams.Values['EmailAddress'] := AEmailAddress;
     AResponse := ExecuteHttp('POST', Host, '', '', nil, AParams).ContentText;
   finally
     AParams.Free;
   end;
 end;
+
 
 end.
 

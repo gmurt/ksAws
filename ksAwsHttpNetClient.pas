@@ -74,8 +74,15 @@ end;
 
 function TksAwsNetHttp.Delete(AUrl: string; AHeaders: TStrings;
   const AResponseStream: TStream): TksAwsHttpResponse;
+var
+  AHttp: THTTPClient;
 begin
-
+  AHttp := CreateHttp(AHeaders);
+  try
+    Result := ResponseToKsHttpResponse(AHttp.Delete(AUrl, AResponseStream));
+  finally
+    AHttp.Free;
+  end;
 end;
 
 procedure TksAwsNetHttp.DoValidateCert(const Sender: TObject;
