@@ -32,7 +32,7 @@ uses ksAwsHttpIntf;
 
 implementation
 
-uses Classes, Net.HttpClient, Net.UrlClient;
+uses Classes, Net.HttpClient, Net.UrlClient, SysUtils;
 
 type
   TksAwsNetHttp = class(TInterfacedObject, IksAwsHttp)
@@ -41,10 +41,10 @@ type
     procedure DoValidateCert(const Sender: TObject; const ARequest: TURLRequest;
       const Certificate: TCertificate; var Accepted: Boolean);
   protected
-    function Get(AUrl: string; AHeaders: TStrings; const AResponseStream: TStream = nil): TksAwsHttpResponse;
-    function Put(AUrl, APayload: string; AHeaders: TStrings; const AResponseStream: TStream = nil): TksAwsHttpResponse;
-    function Post(AUrl, APayload: string; AHeaders: TStrings; const AResponseStream: TStream = nil): TksAwsHttpResponse;
-    function Delete(AUrl: string; AHeaders: TStrings; const AResponseStream: TStream = nil): TksAwsHttpResponse;
+    function Get(AUrl: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
+    function Put(AUrl, APayload: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
+    function Post(AUrl, APayload: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
+    function Delete(AUrl: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
   end;
 
 function CreateksAwsHttpNetClient: IksAwsHttp;
@@ -54,9 +54,11 @@ end;
 
 { TksAwsNetHttp }
 
-function ResponseToKsHttpResponse(AResponse: IHTTPResponse): TksAwsHttpResponse;
+function ResponseToKsHttpResponse(AResponse: IHTTPResponse): IksAwsHttpResponse;
 begin
-  Result.ContentText := AResponse.ContentAsString;
+  Result := CreateAwsHttpResponse;
+  AResponse.ContentStream.Position := 0;
+  Result.ContentStream.CopyFrom(AResponse.ContentStream, AResponse.ContentStream.Size);
   Result.StatusCode := AResponse.StatusCode;
   Result.ETag := AResponse.HeaderValue['ETag'];
   Result.LastModified := AResponse.LastModified;
@@ -73,7 +75,7 @@ begin
 end;
 
 function TksAwsNetHttp.Delete(AUrl: string; AHeaders: TStrings;
-  const AResponseStream: TStream): TksAwsHttpResponse;
+  const AResponseStream: TStream): IksAwsHttpResponse;
 var
   AHttp: THTTPClient;
 begin
@@ -93,7 +95,7 @@ begin
 end;
 
 function TksAwsNetHttp.Get(AUrl: string; AHeaders: TStrings;
-  const AResponseStream: TStream): TksAwsHttpResponse;
+  const AResponseStream: TStream): IksAwsHttpResponse;
 var
   AHttp: THTTPClient;
 begin
@@ -106,7 +108,7 @@ begin
 end;
 
 function TksAwsNetHttp.Post(AUrl, APayload: string; AHeaders: TStrings;
-  const AResponseStream: TStream): TksAwsHttpResponse;
+  const AResponseStream: TStream): IksAwsHttpResponse;
 var
   AHttp: THTTPClient;
   AContentStream: TStringStream;
@@ -122,7 +124,7 @@ begin
 end;
 
 function TksAwsNetHttp.Put(AUrl, APayload: string; AHeaders: TStrings;
-  const AResponseStream: TStream): TksAwsHttpResponse;
+  const AResponseStream: TStream): IksAwsHttpResponse;
 var
   AHttp: THTTPClient;
   AContentStream: TStringStream;

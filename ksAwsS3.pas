@@ -59,8 +59,8 @@ type
 
 implementation
 
-uses ksAwsConst, SysUtils, System.DateUtils, Net.UrlClient, Net.HttpClient, System.Hash, HttpApp,
-  System.NetEncoding, Xml.xmldom, Xml.XMLIntf, Xml.XMLDoc, ksAwsHash, ksAwsHttpIntf;
+uses ksAwsConst, SysUtils, System.DateUtils, HttpApp,
+  Xml.xmldom, Xml.XMLIntf, Xml.XMLDoc, ksAwsHash, ksAwsHttpIntf;
 
 type
   TksAwsS3Object = class(TInterfacedObject, IksAwsS3Object)
@@ -174,7 +174,7 @@ begin
   try
     AHeaders.Values['x-amz-acl'] := GetAclString(AAcl);
     APayload := GetPayload(C_PAYLOAD_CREATE_BUCKET);
-    AResponse := ExecuteHttp(C_PUT, ABucketName+'.'+Host, '/', APayload, AHeaders, nil).ContentText;
+    AResponse := ExecuteHttp(C_PUT, ABucketName+'.'+Host, '/', APayload, AHeaders, nil).ContentAsString;
     Result := AResponse = '';
   finally
     AHeaders.Free;
@@ -185,7 +185,7 @@ function TksAwsS3.DeleteBucket(ABucketName: string): Boolean;
 var
   AResponse: string;
 begin
-  AResponse := ExecuteHttp(C_DELETE, ABucketName+'.'+Host, '/', '', nil, nil).ContentText;
+  AResponse := ExecuteHttp(C_DELETE, ABucketName+'.'+Host, '/', '', nil, nil).ContentAsString;
   Result := AResponse = '';
 end;
 
@@ -209,7 +209,7 @@ var
   AObject: IXMLNode;
 begin
   AStrings.Clear;
-  AResponse := ExecuteHttp(C_GET, ABucketName+'.'+Host, '/', '', nil, nil).ContentText;
+  AResponse := ExecuteHttp(C_GET, ABucketName+'.'+Host, '/', '', nil, nil).ContentAsString;
   AXml := TXMLDocument.Create(nil);
   AXml.LoadFromXML(AResponse);
   AContents := AXml.ChildNodes['ListBucketResult'];
@@ -229,7 +229,7 @@ var
   ABucket: IXMLNode;
   ICount: integer;
 begin
-  AResponse := ExecuteHttp(C_GET, Host, '', '', nil, nil).ContentText;
+  AResponse := ExecuteHttp(C_GET, Host, '', '', nil, nil).ContentAsString;
   AXml := TXMLDocument.Create(nil);
   AXml.LoadFromXML(AResponse);
   ABuckets := AXml.ChildNodes['ListAllMyBucketsResult'];
@@ -243,7 +243,7 @@ end;
 
 function TksAwsS3.GetObject(ABucketName, AObjectName: string): IksAwsS3Object;
 var
-  AResponse: TksAwsHttpResponse;
+  AResponse: IksAwsHttpResponse;
   AFilename: string;
   AParams: TStrings;
   AStream: TStream;

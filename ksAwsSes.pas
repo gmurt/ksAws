@@ -63,8 +63,7 @@ type
 
 implementation
 
-uses ksAwsConst, Net.HttpClient, Xml.xmldom, Xml.XMLIntf, Xml.XMLDoc, System.NetEncoding,
-  Math;
+uses ksAwsConst, Xml.xmldom, Xml.XMLIntf, Xml.XMLDoc, Math, ksAwsHash;
 
 type
   TksAwsSesMessage = class(TInterfacedObject, IksAwsSesMessage)
@@ -240,13 +239,13 @@ begin
       if AMaxItems > 0 then
         AParams.Values['MaxItems'] := IntToStr(Min(AMaxItems, 1000));
       AParams.Values['NextToken'] :=  ANextToken;
-      AResponse := ExecuteHttp('POST', Host, '', '', nil, AParams).ContentText;
+      AResponse := ExecuteHttp('POST', Host, '', '', nil, AParams).ContentAsString;
     finally
       AParams.Free;
     end;
     AXml.LoadFromXML(AResponse);
     AIdentities := AXml.DocumentElement.ChildNodes['ListIdentitiesResult'];
-    ANextToken :=  TNetEncoding.URL.Encode(AIdentities.ChildNodes['NextToken'].Text);
+    ANextToken :=   UrlEncode(AIdentities.ChildNodes['NextToken'].Text);
     AIdentities := AIdentities.ChildNodes['Identities'];
     for ICount := 0 to AIdentities.ChildNodes.Count -1 do
     begin
@@ -281,7 +280,7 @@ begin
     BuildDestinationParams('bcc', AMessage.Bcc, AParams);
     AParams.Values['Message.Subject.Data'] := AMessage.Subject;
     AParams.Values['Message.Body.Text.Data'] := AMessage.Body;
-    AResponse := ExecuteHttp('POST', Host, '', '', nil, AParams).ContentText;
+    AResponse := ExecuteHttp('POST', Host, '', '', nil, AParams).ContentAsString;
   finally
     AParams.Free;
   end;
@@ -296,7 +295,7 @@ begin
   try
     AParams.Values['Action'] := 'VerifyEmailIdentity';
     AParams.Values['EmailAddress'] := AEmailAddress;
-    AResponse := ExecuteHttp('POST', Host, '', '', nil, AParams).ContentText;
+    AResponse := ExecuteHttp('POST', Host, '', '', nil, AParams).ContentAsString;
   finally
     AParams.Free;
   end;

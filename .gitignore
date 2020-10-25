@@ -69,3 +69,4 @@ __recovery/
 modules/
 Examples/ListBuckets/_credentials.inc
 Examples/VerifiedSenders/_credentials.inc
+Examples/VerifiedSenders/VerifiedSenders.res

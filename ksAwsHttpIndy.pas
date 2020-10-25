@@ -42,10 +42,10 @@ type
   private
     function CreateHttp(AHeaders: TStrings): TIdHttp;
   protected
-    function Get(AUrl: string; AHeaders: TStrings; const AResponseStream: TStream = nil): TksAwsHttpResponse;
-    function Put(AUrl, APayload: string; AHeaders: TStrings; const AResponseStream: TStream = nil): TksAwsHttpResponse;
-    function Post(AUrl, APayload: string; AHeaders: TStrings; const AResponseStream: TStream = nil): TksAwsHttpResponse;
-    function Delete(AUrl: string; AHeaders: TStrings; const AResponseStream: TStream = nil): TksAwsHttpResponse;
+    function Get(AUrl: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
+    function Put(AUrl, APayload: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
+    function Post(AUrl, APayload: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
+    function Delete(AUrl: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
   end;
 
 function CreateksAwsHttpIndy: IksAwsHttp;
@@ -55,8 +55,10 @@ end;
 
 { TksAwsIndyHttp }
 
-function ResponseToKsResponse(AIdResponse: TIdHTTPResponse): TksAwsHttpResponse;
+function ResponseToKsResponse(AIdResponse: TIdHTTPResponse): IksAwsHttpResponse;
 begin
+  Result := CreateAwsHttpResponse;
+  Result.ContentStream := AIdResponse.ContentStream;
   Result.StatusCode := AIdResponse.ResponseCode;
   Result.ETag := AIdResponse.ETag;
   Result.LastModified := DateToStr(AIdResponse.LastModified);
@@ -73,35 +75,41 @@ begin
 end;
 
 function TksAwsIndyHttp.Delete(AUrl: string; AHeaders: TStrings;
-  const AResponseStream: TStream): TksAwsHttpResponse;
+  const AResponseStream: TStream): IksAwsHttpResponse;
 var
   AHttp: TIdHttp;
 begin
   AHttp := CreateHttp(AHeaders);
-  AHttp.Delete(AUrl, AResponseStream);
-  Result.ContentText := '';
+  AHttp.Delete(AUrl);
   Result := ResponseToKsResponse(AHttp.Response);
 end;
 
-function TksAwsIndyHttp.Get(AUrl: string; AHeaders: TStrings;
-  const AResponseStream: TStream = nil): TksAwsHttpResponse;
+function TksAwsIndyHttp.Get(AUrl: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
 var
   AHttp: TIdHttp;
+  AStream: TStream;
 begin
+  AStream := TMemoryStream.Create;
   AHttp := CreateHttp(AHeaders);
   try
+    AHttp.Get(AUrl, AStream);
+    AStream.Position := 0;
     if AResponseStream <> nil then
-      AHttp.Get(AUrl, AResponseStream)
-    else
-      Result.ContentText := AHttp.Get(AUrl);
+    begin
+      AResponseStream.CopyFrom(AStream, AStream.Size);
+      AResponseStream.Position := 0;
+      AStream.Position := 0;
+    end;
     Result  := ResponseToKsResponse(AHttp.Response);
+    Result.ContentStream := AStream;
   finally
     AHttp.Free;
+    AStream.Free
   end;
 end;
 
 function TksAwsIndyHttp.Post(AUrl, APayload: string; AHeaders: TStrings;
-  const AResponseStream: TStream = nil): TksAwsHttpResponse;
+  const AResponseStream: TStream = nil): IksAwsHttpResponse;
 var
   AHttp: TIdHttp;
   AContentStream: TStringStream;
@@ -112,7 +120,6 @@ begin
   AResponse := TStringStream.Create;
   try
     AHttp.Post(AUrl, AContentStream, AResponse);
-    Result.ContentText := AResponse.DataString;
     if AResponseStream <> nil then
     begin
       AResponse.Position := 0;
@@ -127,7 +134,7 @@ begin
 end;
 
 function TksAwsIndyHttp.Put(AUrl, APayload: string; AHeaders: TStrings;
-  const AResponseStream: TStream): TksAwsHttpResponse;
+  const AResponseStream: TStream): IksAwsHttpResponse;
 var
   AHttp: TIdHttp;
   AContentStream: TStringStream;
