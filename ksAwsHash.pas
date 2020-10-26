@@ -29,7 +29,7 @@ interface
 uses IdGlobal;
 
   function UrlEncode(AUrl: string): string;
-  function GenerateSignature(AStringToSign, APrivateKey, ARegionStr, AServiceName: string): string;
+  function GenerateSignature(ARequestTime: TDateTime; AStringToSign, APrivateKey, ARegionStr, AServiceName: string): string;
 
 {$I include.inc}
 
@@ -60,11 +60,11 @@ begin
   Result := TIdURI.ParamsEncode(AUrl);
 end;
 
-function GenerateSignature(AStringToSign, APrivateKey, ARegionStr, AServiceName: string): string;
+function GenerateSignature(ARequestTime: TDateTime; AStringToSign, APrivateKey, ARegionStr, AServiceName: string): string;
 var
   ADateKeyIndy, ARegionKeyIndy, AServiceKeyIndy, ASigningKeyIndy: TIdBytes;
 begin
-  ADateKeyIndy := CalculateHMACSHA256(FormatDateTime(C_SHORT_DATE_FORMAT, Now), IndyTextEncoding_UTF8.GetBytes('AWS4' + APrivateKey));
+  ADateKeyIndy := CalculateHMACSHA256(FormatDateTime(C_SHORT_DATE_FORMAT, ARequestTime), IndyTextEncoding_UTF8.GetBytes('AWS4' + APrivateKey));
   ARegionKeyIndy := CalculateHMACSHA256(ARegionStr, ADateKeyIndy);
   AServiceKeyIndy := CalculateHMACSHA256(AServiceName, ARegionKeyIndy);
   ASigningKeyIndy := CalculateHMACSHA256('aws4_request', AServiceKeyIndy);
@@ -118,10 +118,10 @@ begin
   Result := TNetEncoding.URL.Encode(AUrl, [Ord('#'), Ord('@')], []);
 end;
 
-function GenerateSignature(AStringToSign, APrivateKey, ARegionStr, AServiceName: string): string;var
+function GenerateSignature(ARequestTime: TDateTime; AStringToSign, APrivateKey, ARegionStr, AServiceName: string): string;var
   ADateKey, ARegionKey, AServiceKey, ASigningKey: TArray<Byte>;
 begin
-  ADateKey := CalculateHMACSHA256(FormatDateTime(C_SHORT_DATE_FORMAT, Now), TEncoding.UTF8.GetBytes('AWS4' + APrivateKey));
+  ADateKey := CalculateHMACSHA256(FormatDateTime(C_SHORT_DATE_FORMAT, ARequestTime), TEncoding.UTF8.GetBytes('AWS4' + APrivateKey));
   ARegionKey := CalculateHMACSHA256(ARegionStr, ADateKey);
   AServiceKey := CalculateHMACSHA256(AServiceName, ARegionKey);
   ASigningKey := CalculateHMACSHA256('aws4_request', AServiceKey);

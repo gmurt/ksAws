@@ -48,6 +48,8 @@ type
 
   IksAwsS3 = interface
     ['{BD814B29-8F03-425F-BF47-FECBEA49D133}']
+    function GetBucketLocation(ABuckeytName: string): string;
+    function BucketExists(ABucketName: string): Boolean;
     function GetObject(ABucketName, AObjectName: string): IksAwsS3Object;
     function CreateBucket(ABucketName: string; AAcl: TksS3Acl): Boolean;
     function DeleteBucket(ABucketName: string): Boolean;
@@ -96,7 +98,9 @@ type
   private
     function GetAclString(AAcl: TksS3Acl): string;
   protected
+    function GetBucketLocation(ABucketName: string): string;
     function GetServiceName: string; override;
+    function BucketExists(ABucketName: string): Boolean;
     function GetObject(ABucketName, AObjectName: string): IksAwsS3Object;
     function CreateBucket(ABucketName: string; AAcl: TksS3Acl): Boolean;
     function DeleteBucket(ABucketName: string): Boolean;
@@ -164,6 +168,12 @@ end;
 
 { TksAwsS3 }
 
+function TksAwsS3.BucketExists(ABucketName: string): Boolean;
+
+begin
+  Result := ExecuteHttp(C_HEAD, ABucketName+'.'+Host, '/', '', nil, nil).StatusCode = 200;
+end;
+
 function TksAwsS3.CreateBucket(ABucketName: string; AAcl: TksS3Acl): Boolean;
 var
   AResponse: string;
@@ -202,16 +212,13 @@ end;
 procedure TksAwsS3.GetBucket(ABucketName: string;
                              AStrings: TStrings);
 var
-  AResponse: string;
   AXml: IXMLDocument;
   AContents: IXMLNode;
   ICount: integer;
   AObject: IXMLNode;
 begin
   AStrings.Clear;
-  AResponse := ExecuteHttp(C_GET, ABucketName+'.'+Host, '/', '', nil, nil).ContentAsString;
-  AXml := TXMLDocument.Create(nil);
-  AXml.LoadFromXML(AResponse);
+  AXml := ExecuteHttpXml(C_GET, ABucketName+'.'+Host, '/', '', nil, nil);
   AContents := AXml.ChildNodes['ListBucketResult'];
   for ICount := 0 to AContents.ChildNodes.Count-1 do
   begin
@@ -221,17 +228,24 @@ begin
   end;
 end;
 
+function TksAwsS3.GetBucketLocation(ABucketName: string): string;
+var
+  AParams: TStrings;
+begin
+  AParams := TStringList.Create;
+  AParams.Text := 'location=';
+  Result := ExecuteHttp(C_GET, ABucketName+'.s3.amazonaws.com', '', '', nil, AParams, False, nil).ContentAsString;
+  AParams.Free;
+end;
+
 procedure TksAwsS3.GetBuckets(AStrings: TStrings);
 var
-  AResponse: string;
   AXml: IXMLDocument;
   ABuckets: IXMLNode;
   ABucket: IXMLNode;
   ICount: integer;
 begin
-  AResponse := ExecuteHttp(C_GET, Host, '', '', nil, nil).ContentAsString;
-  AXml := TXMLDocument.Create(nil);
-  AXml.LoadFromXML(AResponse);
+  AXml := ExecuteHttpXml(C_GET, Host, '', '', nil, nil);
   ABuckets := AXml.ChildNodes['ListAllMyBucketsResult'];
   ABuckets := ABuckets.ChildNodes['Buckets'];
   for ICount := 0 to ABuckets.ChildNodes.Count-1 do
@@ -251,7 +265,7 @@ begin
   AParams := TStringList.Create;
   AStream := TMemoryStream.Create;
   try
-    AResponse := ExecuteHttp(C_GET, ABucketName+'.'+Host, AObjectName, '', nil, AParams, AStream);
+    AResponse := ExecuteHttp(C_GET, ABucketName+'.'+Host, AObjectName, '', nil, AParams, True, AStream);
   AFilename := AObjectName;
   while Pos('/', AFilename) > 0 do
     AFilename := Copy(AFilename, Pos('/', AFilename)+1, Length(AFilename));

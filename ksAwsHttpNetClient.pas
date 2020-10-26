@@ -41,6 +41,7 @@ type
     procedure DoValidateCert(const Sender: TObject; const ARequest: TURLRequest;
       const Certificate: TCertificate; var Accepted: Boolean);
   protected
+    function Head(AUrl: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
     function Get(AUrl: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
     function Put(AUrl, APayload: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
     function Post(AUrl, APayload: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
@@ -102,6 +103,19 @@ begin
   AHttp := CreateHttp(AHeaders);
   try
     Result := ResponseToKsHttpResponse(AHttp.Get(AUrl, AResponseStream));
+  finally
+    AHttp.Free;
+  end;
+end;
+
+function TksAwsNetHttp.Head(AUrl: string; AHeaders: TStrings;
+  const AResponseStream: TStream): IksAwsHttpResponse;
+var
+  AHttp: THTTPClient;
+begin
+  AHttp := CreateHttp(AHeaders);
+  try
+    Result := ResponseToKsHttpResponse(AHttp.Head(AUrl));
   finally
     AHttp.Free;
   end;

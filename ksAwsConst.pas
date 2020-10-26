@@ -32,6 +32,7 @@ const
 
 
   C_GET               = 'GET';
+  C_HEAD              = 'HEAD';
   C_PUT               = 'PUT';
   C_POST              = 'POST';
   C_DELETE            = 'DELETE';
