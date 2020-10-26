@@ -36,18 +36,16 @@ var
 
 implementation
 
-uses System.DateUtils, System.NetEncoding, System.Hash, Net.HttpClient, ksAwsBase;
+uses System.DateUtils, ksAwsBase;
 
 
-// replace the values inside "credentials.inc" with your AWS S3 credentials which you can
-// create in the AWS Console.
+// replace the values inside "credentials.inc" with your AWS credentials which you can
+// create in the AWS IAM Console.
 
 {$INCLUDE credentials.inc}
 
 const
   C_AWS_RGN = awsEuWest1;
-
-
 
 {$R *.dfm}
 

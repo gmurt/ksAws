@@ -38,20 +38,23 @@ type
     function GetETag: string;
     function GetLastModified: string;
     function GetStatusCode: integer;
+    function GetHeaderValue(AName: string): string;
     procedure SetContentStream(const Value: TStream);
     procedure SetETag(const Value: string);
     procedure SetLastModified(const Value: string);
     procedure SetStatusCode(const Value: integer);
+    procedure SetHeaderValue(AName: string; const Value: string);
     property ContentStream: TStream read GetContentStream write SetContentStream;
     property StatusCode: integer read GetStatusCode write SetStatusCode;
     property ETag: string read GetETag write SetETag;
     property LastModified: string read GetLastModified  write SetLastModified;
     property ContentAsString: string read GetContentAsString;
+    property HeaderValue[AName: string]: string read GetHeaderValue write SetHeaderValue;
   end;
 
   IksAwsHttp = interface
     ['{AFEEA848-BDE5-423B-8144-1DA0A7A1F036}']
-    function Head(AUrl: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
+    function Head(AUrl: string; AHeaders: TStrings): IksAwsHttpResponse;
     function Get(AUrl: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
     function Put(AUrl, APayload: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
     function Post(AUrl, APayload: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
@@ -80,6 +83,7 @@ type
     FStatusCode: integer;
     FETag: string;
     FLastModified: string;
+    FHeaderValues: TStrings;
     function GetContentStream: TStream;
     function GetETag: string;
     function GetLastModified: string;
@@ -89,6 +93,8 @@ type
     procedure SetLastModified(const Value: string);
     procedure SetStatusCode(const Value: integer);
     function GetContentAsString: string;
+    function GetHeaderValue(AName: string): string;
+    procedure SetHeaderValue(AName: string; const Value: string);
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -97,6 +103,7 @@ type
     property ETag: string read GetETag write SetETag;
     property LastModified: string read GetLastModified  write SetLastModified;
     property ContentAsString: string read GetContentAsString;
+    property HeaderValue[AName: string]: string read GetHeaderValue write SetHeaderValue;
   end;
 
 function CreateAwsHttp: IksAwsHttp;
@@ -118,11 +125,13 @@ end;
 constructor TksAwsHttpResponse.Create;
 begin
   FContentStream := TMemoryStream.Create;
+  FHeaderValues := TStringList.Create;
 end;
 
 destructor TksAwsHttpResponse.Destroy;
 begin
   FContentStream.Free;
+  FHeaderValues.Free;
   inherited;
 end;
 
@@ -150,6 +159,11 @@ begin
   Result := FETag;
 end;
 
+function TksAwsHttpResponse.GetHeaderValue(AName: string): string;
+begin
+  Result := FHeaderValues.Values[AName];
+end;
+
 function TksAwsHttpResponse.GetLastModified: string;
 begin
   Result := FLastModified;
@@ -174,6 +188,11 @@ end;
 procedure TksAwsHttpResponse.SetETag(const Value: string);
 begin
   FETag := Value;
+end;
+
+procedure TksAwsHttpResponse.SetHeaderValue(AName: string; const Value: string);
+begin
+  FHeaderValues.Values[AName] := Value;
 end;
 
 procedure TksAwsHttpResponse.SetLastModified(const Value: string);

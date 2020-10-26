@@ -41,7 +41,7 @@ type
     procedure DoValidateCert(const Sender: TObject; const ARequest: TURLRequest;
       const Certificate: TCertificate; var Accepted: Boolean);
   protected
-    function Head(AUrl: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
+    function Head(AUrl: string; AHeaders: TStrings): IksAwsHttpResponse;
     function Get(AUrl: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
     function Put(AUrl, APayload: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
     function Post(AUrl, APayload: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
@@ -62,7 +62,9 @@ begin
   Result.ContentStream.CopyFrom(AResponse.ContentStream, AResponse.ContentStream.Size);
   Result.StatusCode := AResponse.StatusCode;
   Result.ETag := AResponse.HeaderValue['ETag'];
+  Result.ETag := AResponse.HeaderValue['ETag'];
   Result.LastModified := AResponse.LastModified;
+  Result.HeaderValue['x-amz-bucket-region'] := AResponse.HeaderValue['x-amz-bucket-region'];
 end;
 
 function TksAwsNetHttp.CreateHttp(AHeaders: TStrings): THTTPClient;
@@ -108,8 +110,7 @@ begin
   end;
 end;
 
-function TksAwsNetHttp.Head(AUrl: string; AHeaders: TStrings;
-  const AResponseStream: TStream): IksAwsHttpResponse;
+function TksAwsNetHttp.Head(AUrl: string; AHeaders: TStrings): IksAwsHttpResponse;
 var
   AHttp: THTTPClient;
 begin

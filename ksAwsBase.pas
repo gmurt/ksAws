@@ -240,7 +240,7 @@ begin
     AHeaders.Values['Authorization'] := AAuthHeader;
     AUrl := GetUrl(AHost, APath, AParams);
     AHttp := CreateAwsHttp;
-    if AVerb = C_HEAD then Result := AHttp.Head(AUrl, AHeaders, AResponseStream);
+    if AVerb = C_HEAD then Result := AHttp.Head(AUrl, AHeaders);
     if AVerb = C_GET then Result := AHttp.Get(AUrl, AHeaders, AResponseStream);
     if AVerb = C_PUT then Result := AHttp.Put(AUrl, APayload, AHeaders, AResponseStream);
     if AVerb = C_POST then Result := AHttp.Post(AUrl, APayload, AHeaders, AResponseStream);

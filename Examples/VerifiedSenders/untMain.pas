@@ -24,8 +24,8 @@ implementation
 
 uses ksAwsSes, ksAwsBase;
 
-// replace the values inside "credentials.inc" with your SES SMTP credentials which you can
-// create in the SES->SMTP Settings section of the AWS Console.
+// replace the values inside "credentials.inc" with your AWS credentials which you can
+// create in the AWS IAM Console.
 
 {$INCLUDE credentials.inc}
 

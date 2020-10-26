@@ -38,10 +38,13 @@ var
   ASsl: TIdSSLIOHandlerSocketOpenSSL;
 
 type
+  TksIdHttp = class(TIdHTTP);
+
   TksAwsIndyHttp = class(TInterfacedObject, IksAwsHttp)
   private
-    function CreateHttp(AHeaders: TStrings): TIdHttp;
+    function CreateHttp(AHeaders: TStrings): TksIdHttp;
   protected
+    function Head(AUrl: string; AHeaders: TStrings): IksAwsHttpResponse;
     function Get(AUrl: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
     function Put(AUrl, APayload: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
     function Post(AUrl, APayload: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
@@ -55,20 +58,22 @@ end;
 
 { TksAwsIndyHttp }
 
-function ResponseToKsResponse(AIdResponse: TIdHTTPResponse): IksAwsHttpResponse;
+function ResponseToKsResponse(AResponse: TIdHTTPResponse): IksAwsHttpResponse;
 begin
   Result := CreateAwsHttpResponse;
-  Result.ContentStream := AIdResponse.ContentStream;
-  Result.StatusCode := AIdResponse.ResponseCode;
-  Result.ETag := AIdResponse.ETag;
-  Result.LastModified := DateToStr(AIdResponse.LastModified);
+  Result.ContentStream := AResponse.ContentStream;
+  Result.StatusCode := AResponse.ResponseCode;
+  Result.ETag := AResponse.ETag;
+  Result.LastModified := DateToStr(AResponse.LastModified);
+  Result.HeaderValue['x-amz-bucket-region'] := AResponse.RawHeaders.Values['x-amz-bucket-region'];
 end;
 
-function TksAwsIndyHttp.CreateHttp(AHeaders: TStrings): TIdHttp;
+function TksAwsIndyHttp.CreateHttp(AHeaders: TStrings): TksIdHttp;
 var
   ICount: integer;
 begin
-  Result := TIdHTTP.Create;
+  Result := TksIdHttp.Create;
+  Result.HandleRedirects := False;
   Result.IOHandler := ASsl;
   for ICount := 0 to AHeaders.Count-1 do
     Result.Request.CustomHeaders.Values[AHeaders.Names[ICount]] := AHeaders.ValueFromIndex[ICount];
@@ -105,6 +110,20 @@ begin
   finally
     AHttp.Free;
     AStream.Free
+  end;
+end;
+
+function TksAwsIndyHttp.Head(AUrl: string; AHeaders: TStrings): IksAwsHttpResponse;
+var
+  AHttp: TksIdHttp;
+begin
+  AHttp := CreateHttp(AHeaders);
+  try
+    //AHttp.Head(AUrl);
+    AHttp.DoRequest(Id_HTTPMethodHead, AURL, nil, nil, [301]);
+    Result  := ResponseToKsResponse(AHttp.Response);
+  finally
+    AHttp.Free;
   end;
 end;
 

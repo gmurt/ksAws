@@ -48,7 +48,7 @@ type
 
   IksAwsS3 = interface
     ['{BD814B29-8F03-425F-BF47-FECBEA49D133}']
-    function GetBucketLocation(ABuckeytName: string): string;
+    function GetBucketLocation(ABucketName: string): string;
     function BucketExists(ABucketName: string): Boolean;
     function GetObject(ABucketName, AObjectName: string): IksAwsS3Object;
     function CreateBucket(ABucketName: string; AAcl: TksS3Acl): Boolean;
@@ -230,12 +230,10 @@ end;
 
 function TksAwsS3.GetBucketLocation(ABucketName: string): string;
 var
-  AParams: TStrings;
+  AResponse: IksAwsHttpResponse;
 begin
-  AParams := TStringList.Create;
-  AParams.Text := 'location=';
-  Result := ExecuteHttp(C_GET, ABucketName+'.s3.amazonaws.com', '', '', nil, AParams, False, nil).ContentAsString;
-  AParams.Free;
+  AResponse := ExecuteHttp(C_HEAD, ABucketName+'.'+Host, '', '', nil, nil, True, nil);
+  Result := AResponse.HeaderValue['x-amz-bucket-region'];
 end;
 
 procedure TksAwsS3.GetBuckets(AStrings: TStrings);
