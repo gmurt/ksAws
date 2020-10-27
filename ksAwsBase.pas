@@ -38,16 +38,17 @@ type
     FRegion: TksAwsRegion;
     function GetRegionStr: string;
     function RegionToStr(ARegion: TksAwsRegion): string;
-    procedure GetHeaders(ARequestTime: TDateTime; AHost, APayload: string; AHeaders: TStrings; var ADelimited: string);
+    procedure GetHeaders(ARequestTime: TDateTime; AHost, APayload: string; AHeaders: TStrings);
     function GetUrl(AHost, APath: string; AParams: TStrings): string;
   protected
+    function GetApiVersion: string; virtual;
     function GetHost: string; virtual;
     function GetPayload(AStr: string): string;
     function GenerateUrl(ASubDomain, APath: string): string;
     function GetServiceName: string; virtual; abstract;
     function GenerateCanonicalRequest(AVerb, AHost, URI, APayload: string; AHeaders, AQueryValues: TStrings): string; overload;
-    function ExecuteHttp(AVerb, AHost, APath, APayload: string; AExtraHeaders, AParams: TStrings; const AUseRegion: Boolean = True; const AResponseStream: TStream = nil): IksAwsHttpResponse;
-    function ExecuteHttpXml(AVerb, AHost, APath, APayload: string; AExtraHeaders, AParams: TStrings; const AUseRegion: Boolean = True; const AResponseStream: TStream = nil): IXmlDocument;
+    function ExecuteHttp(AVerb, AAction, AHost, APath, APayload: string; AExtraHeaders, AQueryParams: TStrings; const AUseRegion: Boolean = True; const AResponseStream: TStream = nil): IksAwsHttpResponse;
+    function ExecuteHttpXml(AVerb, AAction, AHost, APath, APayload: string; AExtraHeaders, AQueryParams: TStrings; const AUseRegion: Boolean = True; const AResponseStream: TStream = nil): IXmlDocument;
   public
     constructor Create(APublicKey, APrivateKey: string; ARegion: TksAwsRegion);
     property PublicKey: string read FPublicKey;
@@ -152,21 +153,19 @@ begin
   Result := Result +GetHashSHA256Hex(APayload);
 end;
 
-procedure TksAwsBaseService.GetHeaders(ARequestTime: TDateTime; AHost, APayload: string; AHeaders: TStrings; var ADelimited: string);
-var
-  ICount: integer;
+function TksAwsBaseService.GetApiVersion: string;
 begin
-  ADelimited := '';
+  //
+end;
+
+procedure TksAwsBaseService.GetHeaders(ARequestTime: TDateTime; AHost, APayload: string; AHeaders: TStrings);
+begin
   AHeaders.Values['host'] := Trim(UrlEncode(AHost));
-  AHeaders.Values['x-amz-content-sha256'] := GetHashSHA256Hex(APayload); // apayload
+  //if APayload <> '' then
+    AHeaders.Values['x-amz-content-sha256'] := GetHashSHA256Hex(APayload);
   AHeaders.Values['x-amz-date'] := FormatDateTime(C_AMZ_DATE_FORMAT, TTimeZone.Local.ToUniversalTime(ARequestTime), TFormatSettings.Create('en-US'));
-  (AHeaders as TStringList).Sort;
-  for ICount := 0 to AHeaders.Count-1 do
-  begin
-    ADelimited := ADelimited+AHeaders.Names[ICount];
-    if ICount < AHeaders.Count-1 then
-      ADelimited := ADelimited + ';';
-  end;
+      (AHeaders as TStringList).Sort;
+
 end;
 
 function TksAwsBaseService.GetHost: string;
@@ -185,16 +184,16 @@ begin
   Result := RegionToStr(FRegion);
 end;
 
-function TksAwsBaseService.ExecuteHttpXml(AVerb, AHost, APath, APayload: string; AExtraHeaders, AParams: TStrings; const AUseRegion: Boolean = True; const AResponseStream: TStream = nil): IXmlDocument;
+function TksAwsBaseService.ExecuteHttpXml(AVerb, AAction, AHost, APath, APayload: string; AExtraHeaders, AQueryParams: TStrings; const AUseRegion: Boolean = True; const AResponseStream: TStream = nil): IXmlDocument;
 var
   AResponse: IksAwsHttpResponse;
 begin
   Result := TXMLDocument.Create(nil);
-  AResponse := ExecuteHttp(AVerb, AHost, APath, APayload, AExtraHeaders, AParams, AUseRegion, AResponseStream);
+  AResponse := ExecuteHttp(AVerb, AAction, AHost, APath, APayload, AExtraHeaders, AQueryParams, AUseRegion, AResponseStream);
   Result.LoadFromXML(AResponse.ContentAsString);
 end;
 
-function TksAwsBaseService.ExecuteHttp(AVerb, AHost, APath, APayload: string; AExtraHeaders, AParams: TStrings; const AUseRegion: Boolean = True; const AResponseStream: TStream = nil): IksAwsHttpResponse;
+function TksAwsBaseService.ExecuteHttp(AVerb, AAction, AHost, APath, APayload: string; AExtraHeaders, AQueryParams: TStrings; const AUseRegion: Boolean = True; const AResponseStream: TStream = nil): IksAwsHttpResponse;
 var
   AHttp: IksAwsHttp;
   AHeaders: TStrings;
@@ -209,22 +208,38 @@ var
   AUrl: string;
   ADelimitedHeaders: string;
   ARegion: string;
+  ICount: integer;
+  AParams: TStrings;
 begin
   ARegion := RegionStr;
   if AUseRegion = False then
     ARegion := RegionToStr(awsUsEast1);
 
   AHeaders := TStringList.Create;
+  AParams := TStringList.Create;
   try
+    if AQueryParams <> nil then
+      AParams.AddStrings(AQueryParams);
+    AParams.Values['Action'] := AAction;
+    AParams.Values['Version'] := GetApiVersion;
     ANow := Now;
     if Pos('/', APath) <> 1 then
       APath := '/'+APath;
     AHash := GetHashSHA256Hex(APayload);
     if AExtraHeaders <> nil then
       AHeaders.AddStrings(AExtraHeaders);
-    GetHeaders(ANow, AHost, APayload, AHeaders, ADelimitedHeaders);
+    GetHeaders(ANow, AHost, APayload, AHeaders);
+
+    ADelimitedHeaders := '';
+    for ICount := 0 to AHeaders.Count-1 do
+    begin
+      ADelimitedHeaders := LowerCase(ADelimitedHeaders+AHeaders.Names[ICount]);
+      if ICount < AHeaders.Count-1 then
+        ADelimitedHeaders := ADelimitedHeaders + ';';
+    end;
     AAmzDate := FormatDateTime(C_AMZ_DATE_FORMAT, TTimeZone.Local.ToUniversalTime(ANow), TFormatSettings.Create('en-US'));
     AShortDate := FormatDateTime(C_SHORT_DATE_FORMAT, TTimeZone.Local.ToUniversalTime(ANow), TFormatSettings.Create('en-US'));
+
     ACanonical := GenerateCanonicalRequest(AVerb, AHost, APath, APayload,AHeaders, AParams);
     AStringToSign := C_HASH_ALGORITHM +C_LF +
                      AAmzDate +C_LF+
@@ -247,6 +262,7 @@ begin
     if AVerb = C_DELETE then Result := AHttp.Delete(AUrl, AHeaders, AResponseStream);
   finally
     AHeaders.Free;
+    AParams.Free;
   end;
 end;
 

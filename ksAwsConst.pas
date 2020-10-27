@@ -29,7 +29,9 @@ interface
 const
   C_SERVICE_S3        = 's3';
   C_SERVICE_SES       = 'email';
+  C_SERVICE_EC2       = 'ec2';
 
+  C_EC2_API_VERSION   = '2016-11-15';
 
   C_GET               = 'GET';
   C_HEAD              = 'HEAD';

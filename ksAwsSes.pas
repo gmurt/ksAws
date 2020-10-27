@@ -2,9 +2,9 @@
 *                                                                              *
 *  ksSES - AWS SES Interface                                                   *
 *                                                                              *
-*  https://github.com/gmurt/ksSES                                              *
+*  https://github.com/gmurt/ksAWS                                            *
 *                                                                              *
-*  Copyright 2015 Graham Murt                                                  *
+*  Copyright 2020 Graham Murt                                                  *
 *                                                                              *
 *  email: graham@kernow-software.co.uk                                         *
 *                                                                              *
@@ -196,9 +196,8 @@ var
 begin
   AParams := TStringList.Create;
   try
-    AParams.Values['Action'] := 'DeleteIdentity';
     AParams.Values['Identity'] := AIdentity;
-    ExecuteHttp('DELETE', Host, '', '', nil, AParams);
+    ExecuteHttp('DELETE', 'DeleteIdentity', Host, '', '', nil, AParams);
   finally
     AParams.Free;
   end;
@@ -234,12 +233,13 @@ begin
   begin
     AParams := TStringList.Create;
     try
-      AParams.Values['Action'] := 'ListIdentities';
+      //AParams.Values['Action'] :=
       AParams.Values['IdentityType'] := 'EmailAddress';
+
       if AMaxItems > 0 then
         AParams.Values['MaxItems'] := IntToStr(Min(AMaxItems, 1000));
       AParams.Values['NextToken'] :=  ANextToken;
-      AResponse := ExecuteHttp('POST', Host, '', '', nil, AParams).ContentAsString;
+      AResponse := ExecuteHttp('POST', 'ListIdentities', Host, '', '', nil, AParams).ContentAsString;
     finally
       AParams.Free;
     end;
@@ -273,14 +273,14 @@ var
 begin
   AParams := TStringList.Create;
   try
-    AParams.Values['Action'] := 'SendEmail';
+    //AParams.Values['Action'] := 'SendEmail';
     AParams.Values['Source'] := AMessage.Sender;
     BuildDestinationParams('to', AMessage.Recipients, AParams);
     BuildDestinationParams('cc', AMessage.CC, AParams);
     BuildDestinationParams('bcc', AMessage.Bcc, AParams);
     AParams.Values['Message.Subject.Data'] := AMessage.Subject;
     AParams.Values['Message.Body.Text.Data'] := AMessage.Body;
-    AResponse := ExecuteHttp('POST', Host, '', '', nil, AParams).ContentAsString;
+    AResponse := ExecuteHttp('POST', 'SendEmail', Host, '', '', nil, AParams).ContentAsString;
   finally
     AParams.Free;
   end;
@@ -293,9 +293,9 @@ var
 begin
   AParams := TStringList.Create;
   try
-    AParams.Values['Action'] := 'VerifyEmailIdentity';
+    //AParams.Values['Action'] := 'VerifyEmailIdentity';
     AParams.Values['EmailAddress'] := AEmailAddress;
-    AResponse := ExecuteHttp('POST', Host, '', '', nil, AParams).ContentAsString;
+    AResponse := ExecuteHttp('POST', 'VerifyEmailIdentity', Host, '', '', nil, AParams).ContentAsString;
   finally
     AParams.Free;
   end;

@@ -44,8 +44,7 @@ begin
     Exit;
   end;
   ASes := CreateSes(C_SES_PUBLIC, C_SES_PRIVATE, C_AWS_RGN);
-  ASes.GetSenders(lbSenders.Items, 20);
+  ASes.GetSenders(lbSenders.Items);
 end;
-
 
 end.
