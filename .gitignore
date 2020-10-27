@@ -73,7 +73,6 @@ Examples/VerifiedSenders/VerifiedSenders.res
 Examples/EC2/List Instances/_credentials.inc
 Examples/S3/ListBuckets/_credentials.inc
 Examples/SES/VerifiedSenders/_credentials.inc
-Examples/EC2/List Instances/credentials.inc
 Examples/EC2/List Instances/ListInstances.res
 Examples/S3/ListBuckets/ListBuckets.res
 Examples/SES/VerifiedSenders/VerifiedSenders.res
