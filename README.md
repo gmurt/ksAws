@@ -8,3 +8,5 @@ Included Interfaces
 ksSes - Simple email service interface
 
 ksS3  - Amazon S3 storage interface
+
+ksEC2 - EC2 virtual server interface
