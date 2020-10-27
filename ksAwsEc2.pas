@@ -47,7 +47,7 @@ type
 
   IksAwsEC2 = interface
     ['{ADF72B95-53AA-4983-A5A5-4E532AD95E50}']
-    procedure DescribeInstances(AInstances: TksAwsEc2InstanceList);
+    procedure ListInstances(AInstances: TksAwsEc2InstanceList);
   end;
 
   function CreateAwsEc2(APublicKey, APrivateKey: string; ARegion: TksAwsRegion): IksAwsEc2;
@@ -81,7 +81,7 @@ type
   protected
     function GetApiVersion: string; override;
     function GetServiceName: string; override;
-    procedure DescribeInstances(AInstances: TksAwsEc2InstanceList);
+    procedure ListInstances(AInstances: TksAwsEc2InstanceList);
   end;
 
 function CreateAwsEc2(APublicKey, APrivateKey: string; ARegion: TksAwsRegion): IksAwsEc2;
@@ -91,7 +91,7 @@ end;
 
 { TksAwsEC2 }
 
-procedure TksAwsEC2.DescribeInstances(AInstances: TksAwsEc2InstanceList);
+procedure TksAwsEC2.ListInstances(AInstances: TksAwsEc2InstanceList);
 var
   AXml: IXMLDocument;
   AResponse: IXMLNode;
@@ -105,7 +105,7 @@ begin
   AItems := AResponse.ChildNodes['reservationSet'];
   for ICount := 0 to AItems.ChildNodes.Count-1 do
   begin
-    AItem := AItems.ChildNodes['item'].ChildNodes['instancesSet'].ChildNodes['item'];
+    AItem := AItems.ChildNodes[ICount].ChildNodes['instancesSet'].ChildNodes['item'];
     AInstances.AddInstanceXml(AItem.XML);
   end;
 end;

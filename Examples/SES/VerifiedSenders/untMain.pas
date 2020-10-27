@@ -40,7 +40,7 @@ var
 begin
   if Pos('*', C_SES_PUBLIC) > 0 then
   begin
-    ShowMessage('Please replace the C_SES_PUBLIC and C_SES_PRIVATE const in untMain.pas with your SES SMTP credentials.');
+    ShowMessage('Please replace the C_SES_PUBLIC and C_SES_PRIVATE const in the credentials.inc with your credentials.');
     Exit;
   end;
   ASes := CreateSes(C_SES_PUBLIC, C_SES_PRIVATE, C_AWS_RGN);
