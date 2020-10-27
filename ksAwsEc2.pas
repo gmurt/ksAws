@@ -48,6 +48,8 @@ type
   IksAwsEC2 = interface
     ['{ADF72B95-53AA-4983-A5A5-4E532AD95E50}']
     procedure ListInstances(AInstances: TksAwsEc2InstanceList);
+    procedure StartInstances(AInstanceIDs: array of string);
+    procedure StopInstances(AInstanceIDs: array of string);
   end;
 
   function CreateAwsEc2(APublicKey, APrivateKey: string; ARegion: TksAwsRegion): IksAwsEc2;
@@ -82,42 +84,13 @@ type
     function GetApiVersion: string; override;
     function GetServiceName: string; override;
     procedure ListInstances(AInstances: TksAwsEc2InstanceList);
+    procedure StartInstances(AInstanceIDs: array of string);
+    procedure StopInstances(AInstanceIDs: array of string);
   end;
 
 function CreateAwsEc2(APublicKey, APrivateKey: string; ARegion: TksAwsRegion): IksAwsEc2;
 begin
   Result := TksAwsEC2.Create(APublicKey, APrivateKey, ARegion);
-end;
-
-{ TksAwsEC2 }
-
-procedure TksAwsEC2.ListInstances(AInstances: TksAwsEc2InstanceList);
-var
-  AXml: IXMLDocument;
-  AResponse: IXMLNode;
-  AItems: IXMLNode;
-  AItem: IXMLNode;
-  ICount: integer;
-begin
-  AInstances.Clear;
-  AXml := ExecuteHttpXml(C_GET, 'DescribeInstances', Host, '', '', nil, nil, True, nil);
-  AResponse := AXml.ChildNodes['DescribeInstancesResponse'];
-  AItems := AResponse.ChildNodes['reservationSet'];
-  for ICount := 0 to AItems.ChildNodes.Count-1 do
-  begin
-    AItem := AItems.ChildNodes[ICount].ChildNodes['instancesSet'].ChildNodes['item'];
-    AInstances.AddInstanceXml(AItem.XML);
-  end;
-end;
-
-function TksAwsEC2.GetApiVersion: string;
-begin
-  Result := C_EC2_API_VERSION;
-end;
-
-function TksAwsEC2.GetServiceName: string;
-begin
-  Result := C_SERVICE_EC2;
 end;
 
 { TksAwsEC2Instance }
@@ -177,6 +150,69 @@ begin
   AInstance.ID;
   AInstance.Status;
 end;
+
+{ TksAwsEC2 }
+
+procedure TksAwsEC2.ListInstances(AInstances: TksAwsEc2InstanceList);
+var
+  AXml: IXMLDocument;
+  AResponse: IXMLNode;
+  AItems: IXMLNode;
+  AItem: IXMLNode;
+  ICount: integer;
+begin
+  AInstances.Clear;
+  AXml := ExecuteHttpXml(C_GET, 'DescribeInstances', Host, '', '', nil, nil, True, nil);
+  AResponse := AXml.ChildNodes['DescribeInstancesResponse'];
+  AItems := AResponse.ChildNodes['reservationSet'];
+  for ICount := 0 to AItems.ChildNodes.Count-1 do
+  begin
+    AItem := AItems.ChildNodes[ICount].ChildNodes['instancesSet'].ChildNodes['item'];
+    AInstances.AddInstanceXml(AItem.XML);
+  end;
+end;
+
+procedure TksAwsEC2.StartInstances(AInstanceIDs: array of string);
+var
+  ICount: integer;
+  AParams: TStrings;
+begin
+  AParams := TStringList.Create;
+  try
+    for ICount := Low(AInstanceIDs) to High(AInstanceIDs) do
+      AParams.Values['InstanceId.'+IntToStr(ICount+1)] := AInstanceIDs[ICount];
+    ExecuteHttpXml(C_GET, 'StartInstances', Host, '', '', nil, AParams, True, nil);
+  finally
+    AParams.Free;
+  end;
+end;
+
+procedure TksAwsEC2.StopInstances(AInstanceIDs: array of string);
+var
+  ICount: integer;
+  AParams: TStrings;
+begin
+  AParams := TStringList.Create;
+  try
+    for ICount := Low(AInstanceIDs) to High(AInstanceIDs) do
+      AParams.Values['InstanceId.'+IntToStr(ICount+1)] := AInstanceIDs[ICount];
+    ExecuteHttpXml(C_GET, 'StopInstances', Host, '', '', nil, AParams, True, nil);
+  finally
+    AParams.Free;
+  end;
+end;
+
+function TksAwsEC2.GetApiVersion: string;
+begin
+  Result := C_EC2_API_VERSION;
+end;
+
+function TksAwsEC2.GetServiceName: string;
+begin
+  Result := C_SERVICE_EC2;
+end;
+
+
 
 end.
 
