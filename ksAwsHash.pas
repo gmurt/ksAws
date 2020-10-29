@@ -57,7 +57,7 @@ uses ksAwsConst, SysUtils,
   ;
 
 const
-  C_UNSAFE_CHARS: array of Char = [' ',':', '/', '?', '#', '[', ']', '@', '!', '$', '&', '''', '(', ')', '*', '+', ',', ';', '='];
+  C_UNSAFE_CHARS: array[0..18] of Char = (' ',':', '/', '?', '#', '[', ']', '@', '!', '$', '&', '''', '(', ')', '*', '+', ',', ';', '=');
 
 {$IFDEF USE_INDY}
 
