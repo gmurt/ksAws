@@ -74,7 +74,6 @@ type
     FRecipients: TStrings;
     FCc: TStrings;
     FBcc: TStrings;
-
     function GetBcc: TStrings;
     function GetBody: string;
     function GetCc: TStrings;
@@ -233,9 +232,7 @@ begin
   begin
     AParams := TStringList.Create;
     try
-      //AParams.Values['Action'] :=
       AParams.Values['IdentityType'] := 'EmailAddress';
-
       if AMaxItems > 0 then
         AParams.Values['MaxItems'] := IntToStr(Min(AMaxItems, 1000));
       AParams.Values['NextToken'] :=  ANextToken;
@@ -251,7 +248,6 @@ begin
     begin
       if (AMaxItems = 0) or (ASenders.Count < AMaxItems) then
       begin
-        //if ASenders.IndexOf(AIdentities.ChildNodes[ICount].Text) = -1 then
           ASenders.Add(AIdentities.ChildNodes[ICount].Text);
       end;
     end;
@@ -273,7 +269,6 @@ var
 begin
   AParams := TStringList.Create;
   try
-    //AParams.Values['Action'] := 'SendEmail';
     AParams.Values['Source'] := AMessage.Sender;
     BuildDestinationParams('to', AMessage.Recipients, AParams);
     BuildDestinationParams('cc', AMessage.CC, AParams);
@@ -293,7 +288,6 @@ var
 begin
   AParams := TStringList.Create;
   try
-    //AParams.Values['Action'] := 'VerifyEmailIdentity';
     AParams.Values['EmailAddress'] := AEmailAddress;
     AResponse := ExecuteHttp('POST', 'VerifyEmailIdentity', Host, '', '', nil, AParams).ContentAsString;
   finally

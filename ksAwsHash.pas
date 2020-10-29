@@ -28,7 +28,9 @@ interface
 
 uses IdGlobal;
 
-  function UrlEncode(AUrl: string): string;
+  function URLEncode(AUrl: string): string;
+  function ParamEncode(AParam: string): string;
+
   function GenerateSignature(ARequestTime: TDateTime; AStringToSign, APrivateKey, ARegionStr, AServiceName: string): string;
 
 {$I include.inc}
@@ -46,6 +48,7 @@ uses IdGlobal;
 implementation
 
 uses ksAwsConst, SysUtils,
+
   {$IFDEF USE_INDY}
   IdHashSHA, IdHMAC, IdHMACSHA1, IdSSLOpenSSL, IdURI
   {$ELSE}
@@ -53,9 +56,23 @@ uses ksAwsConst, SysUtils,
   {$ENDIF}
   ;
 
+const
+  C_UNSAFE_CHARS: array of Char = [' ',':', '/', '?', '#', '[', ']', '@', '!', '$', '&', '''', '(', ')', '*', '+', ',', ';', '='];
+
 {$IFDEF USE_INDY}
 
-function UrlEncode(AUrl: string): string;
+function ParamEncode(AParam: string): string;
+var
+  AChar: Char;
+begin
+  Result := AParam;
+  for AChar in C_UNSAFE_CHARS do
+  begin
+    Result := StringReplace(Result, AChar, '%'+Copy(ToHex([Ord(AChar)]), 1, 2), [rfReplaceAll]);
+  end;
+end;
+
+function URLEncode(AUrl: string): string;
 begin
   Result := TIdURI.ParamsEncode(AUrl);
 end;
@@ -113,9 +130,18 @@ end;
 
 {$ELSE}
 
+function ParamEncode(AParam: string): string;
+var
+  AUnsafeChars: array of byte;
+begin
+  Result := TNetEncoding.URL.EncodeQuery(AParam,  [Ord('"'), Ord(''''), Ord(':'), Ord(';'), Ord('<'), Ord('='), Ord('>'),
+      Ord('@'), Ord('['), Ord(']'), Ord('^'), Ord('`'), Ord('{'), Ord('}'), Ord('|'), Ord('/'), Ord('\'), Ord('?'), Ord('#'),
+      Ord('&'), Ord('!'), Ord('$'), Ord('('), Ord(')'), Ord(','), Ord('~')]);
+end;
+
 function UrlEncode(AUrl: string): string;
 begin
-  Result := TNetEncoding.URL.Encode(AUrl, [Ord('#'), Ord('@')], []);
+  Result := AUrl;
 end;
 
 function GenerateSignature(ARequestTime: TDateTime; AStringToSign, APrivateKey, ARegionStr, AServiceName: string): string;var

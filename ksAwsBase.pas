@@ -80,7 +80,7 @@ function TksAwsBaseService.GetUrl(AHost, APath: string; AParams: TStrings): stri
 var
   ICount: integer;
 begin
-  Result := C_PROTOCOL+'://'+AHost+APath;
+  Result := '';
   if AParams <> nil then
   begin
     for ICount := 0 to AParams.Count-1 do
@@ -89,9 +89,9 @@ begin
         Result := Result + '?'
       else
         Result := Result + '&';
-      Result := Result + AParams.Names[ICount]+'='+AParams.ValueFromIndex[ICount];
-    end;
+      Result := Result + AParams.Names[ICount]+'='+ParamEncode(AParams.ValueFromIndex[ICount]);    end;
   end;
+  Result := C_PROTOCOL+'://'+AHost+APath+Result;
 end;
 
 
@@ -135,7 +135,7 @@ begin
     (AQueryValues as TStringList).Sort;
     for ICount := 0 to AQueryValues.Count-1 do
     begin
-      Result := Result + UrlEncode(AQueryValues.Names[ICount])+'='+UrlEncode(AQueryValues.ValueFromIndex[ICount]);
+      Result := Result + AQueryValues.Names[ICount]+'='+ParamEncode(AQueryValues.ValueFromIndex[ICount]);
       if ICount < AQueryValues.Count-1 then Result := Result + '&';
     end;
   end;
@@ -165,7 +165,6 @@ begin
     AHeaders.Values['x-amz-content-sha256'] := GetHashSHA256Hex(APayload);
   AHeaders.Values['x-amz-date'] := FormatDateTime(C_AMZ_DATE_FORMAT, TTimeZone.Local.ToUniversalTime(ARequestTime), TFormatSettings.Create('en-US'));
       (AHeaders as TStringList).Sort;
-
 end;
 
 function TksAwsBaseService.GetHost: string;
@@ -229,7 +228,6 @@ begin
     if AExtraHeaders <> nil then
       AHeaders.AddStrings(AExtraHeaders);
     GetHeaders(ANow, AHost, APayload, AHeaders);
-
     ADelimitedHeaders := '';
     for ICount := 0 to AHeaders.Count-1 do
     begin
@@ -254,7 +252,9 @@ begin
 
     AHeaders.Values['Authorization'] := AAuthHeader;
     AUrl := GetUrl(AHost, APath, AParams);
+
     AHttp := CreateAwsHttp;
+
     if AVerb = C_HEAD then Result := AHttp.Head(AUrl, AHeaders);
     if AVerb = C_GET then Result := AHttp.Get(AUrl, AHeaders, AResponseStream);
     if AVerb = C_PUT then Result := AHttp.Put(AUrl, APayload, AHeaders, AResponseStream);

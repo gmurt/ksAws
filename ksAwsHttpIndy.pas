@@ -75,6 +75,7 @@ begin
   Result := TksIdHttp.Create;
   Result.HandleRedirects := False;
   Result.IOHandler := ASsl;
+  Result.HTTPOptions := Result.HTTPOptions + [hoForceEncodeParams];
   for ICount := 0 to AHeaders.Count-1 do
     Result.Request.CustomHeaders.Values[AHeaders.Names[ICount]] := AHeaders.ValueFromIndex[ICount];
 end;
