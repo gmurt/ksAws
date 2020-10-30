@@ -1,7 +1,8 @@
 # ksAws
-Delphi interfaces for Amazon Web Services
+Delphi interfaces for Amazon Web Services. Tested with XE4 and Delphi 10.3. The interfaces will use THttpClient if available, if not it will revert back to Indy for earlier versions of Delphi.
 
-These are not complete implementations, I am just adding functionality as I require it within my own apps.  If you'd like me add any methods which are not currently supported, let me know. 
+These are not complete implementations of the Amazon APIs, I am just adding functionality as I require it within my own apps.  If you'd like me add any methods which are not currently supported, let me know. 
+
 
 Included Interfaces
 -------------------
