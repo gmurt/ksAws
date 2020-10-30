@@ -58,18 +58,22 @@ uses ksAwsConst, SysUtils,
   ;
 
 const
-  C_UNSAFE_CHARS: array[0..18] of Char = (' ',':', '/', '?', '#', '[', ']', '@', '!', '$', '&', '''', '(', ')', '*', '+', ',', ';', '=');
+  C_UNSAFE_CHARS: array of Byte = [Ord('"'), Ord(''''), Ord(':'), Ord(';'), Ord('<'), Ord('='), Ord('>'),
+      Ord('@'), Ord('['), Ord(']'), Ord('^'), Ord('`'), Ord('{'), Ord('}'), Ord('|'), Ord('/'), Ord('\'), Ord('?'), Ord('#'),
+      Ord('&'), Ord('!'), Ord('$'), Ord('('), Ord(')'), Ord(','), Ord('~')];
+  //C_UNSAFE_CHARS: array[0..20] of Char = ('''', '"', ' ',':', '/', '?', '#', '[', ']', '@', '!', '$', '&', '''', '(', ')', '*', '+', ',', ';', '=');
 
 {$IFDEF USE_INDY}
 
 function ParamEncode(AParam: string): string;
 var
-  AChar: Char;
+  AChar: Cardinal;
+  AHex: string;
 begin
   Result := AParam;
   for AChar in C_UNSAFE_CHARS do
   begin
-    Result := StringReplace(Result, AChar, '%'+Copy(ToHex([Ord(AChar)]), 1, 2), [rfReplaceAll]);
+    Result := StringReplace(Result, Char(AChar), '%'+Copy(ToHex([AChar]), 1, 2), [rfReplaceAll]);
   end;
 end;
 
