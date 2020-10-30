@@ -31,6 +31,10 @@ uses Classes, ksAwsBase;
 type
   TksS3Acl = (ksS3Private, ksS3PublicRead, ksS3PublicReadWrite, ksS3AuthenticatedRead);
 
+  TksS3PutOptions = record
+    Acl: TksS3Acl;
+  end;
+
   IksAwsS3Object = interface
     ['{C9390D73-62A6-43F1-AAE1-479693BAAAFC}']
     function GetKey: string;
@@ -55,9 +59,11 @@ type
     function DeleteBucket(ABucketName: string): Boolean;
     procedure GetBuckets(ABuckets: TStrings);
     procedure GetBucket(ABucketName: string; AContents: TStrings);
+    procedure PutObject(ABucketName, APath: string; AObject: TStream; AOptions: TksS3PutOptions); overload;
+    procedure PutObject(ABucketName, APath, AFilename: string; AOptions: TksS3PutOptions); overload;
   end;
 
-  function CreateAwsS3(APublicKey, APrivateKey: string; ARegion: TksAwsRegion): IksAwsS3;
+  function CreateAwsS3(AAccessKey, ASecretKey: string; ARegion: TksAwsRegion): IksAwsS3;
 
 implementation
 
@@ -106,11 +112,13 @@ type
     function DeleteBucket(ABucketName: string): Boolean;
     procedure GetBuckets(AStrings: TStrings);
     procedure GetBucket(ABucketName: string; AStrings: TStrings);
+    procedure PutObject(ABucketName, APath: string; AContent: TStream; AOptions: TksS3PutOptions); overload;
+    procedure PutObject(ABucketName, APath, AFilename: string; AOptions: TksS3PutOptions); overload;
   end;
 
-function CreateAwsS3(APublicKey, APrivateKey: string; ARegion: TksAwsRegion): IksAwsS3;
+function CreateAwsS3(AAccessKey, ASecretKey: string; ARegion: TksAwsRegion): IksAwsS3;
 begin
-  Result := TksAwsS3.Create(APublicKey, APrivateKey, ARegion);
+  Result := TksAwsS3.Create(AAccessKey, ASecretKey, ARegion);
 end;
 
 { TksAwsS3Object }
@@ -281,6 +289,33 @@ end;
 function TksAwsS3.GetServiceName: string;
 begin
   Result := C_SERVICE_S3;
+end;
+
+procedure TksAwsS3.PutObject(ABucketName, APath, AFilename: string; AOptions: TksS3PutOptions);
+var
+  AStream: TMemoryStream;
+begin
+  AStream := TMemoryStream.Create;
+  try
+    AStream.LoadFromFile(AFilename);
+    PutObject(ABucketName, APath, AStream, AOptions);
+  finally
+    AStream.Free;
+  end;
+end;
+
+procedure TksAwsS3.PutObject(ABucketName, APath: string; AContent: TStream; AOptions: TksS3PutOptions);
+var
+  AResponse: IksAwsHttpResponse;
+  AHeaders: TStrings;
+begin
+  AHeaders := TStringList.Create;
+  try
+    AHeaders.Values['x-amz-acl'] := GetAclString(AOptions.Acl);
+    AResponse := ExecuteHttp(C_PUT, '', ABucketName+'.'+Host, APath, AHeaders, nil, AContent, True, nil);
+  finally
+    AHeaders.Free;
+  end;
 end;
 
 end.

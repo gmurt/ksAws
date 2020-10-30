@@ -48,7 +48,7 @@ type
     procedure ListInstances(AInstances: TksAwsRDSInstanceList);
   end;
 
-  function CreateAwsRDS(APublicKey, APrivateKey: string; ARegion: TksAwsRegion): IksAwsRDS;
+  function CreateAwsRDS(AAccessKey, ASecretKey: string; ARegion: TksAwsRegion): IksAwsRDS;
 
 
 implementation
@@ -79,9 +79,9 @@ type
     procedure ListInstances(AInstances: TksAwsRDSInstanceList);
   end;
 
-function CreateAwsRDS(APublicKey, APrivateKey: string; ARegion: TksAwsRegion): IksAwsRDS;
+function CreateAwsRDS(AAccessKey, ASecretKey: string; ARegion: TksAwsRegion): IksAwsRDS;
 begin
-  Result := TksAwsRDS.Create(APublicKey, APrivateKey, ARegion);
+  Result := TksAwsRDS.Create(AAccessKey, ASecretKey, ARegion);
 end;
 
 { TksAwsRDS }

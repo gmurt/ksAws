@@ -27,7 +27,7 @@ uses ksAwsEc2, ksAwsBase;
 // replace the values inside "credentials.inc" with your AWS credentials which you can
 // create in the AWS IAM Console.
 
-{$INCLUDE credentials.inc}
+{$INCLUDE _credentials.inc}
 
 const
   C_AWS_RGN = awsEuWest1;
@@ -41,14 +41,14 @@ var
   AInstance: IksAwsEC2Instance;
 begin
   lbInstances.Items.Create;
-  if Pos('*', C_EC2_PUBLIC) > 0 then
+  if Pos('*', C_EC2_ACCESS_KEY) > 0 then
   begin
-    ShowMessage('Please replace the C_EC2_PUBLIC and C_EC2_PRIVATE const in the credentials.inc file.');
+    ShowMessage('Please replace the C_EC2_ACCESS_KEY and C_EC2_SECRET_KEY const in the credentials.inc file.');
     Exit;
   end;
   AInstances := TksAwsEC2InstanceList.Create;
   try
-    AEc2 := CreateAwsEc2(C_EC2_PUBLIC, C_EC2_PRIVATE, C_AWS_RGN);
+    AEc2 := CreateAwsEc2(C_EC2_ACCESS_KEY, C_EC2_SECRET_KEY, C_AWS_RGN);
     AEc2.ListInstances(AInstances);
     for AInstance in AInstances do
       lbInstances.Items.Add(AInstance.ID+' - '+AInstance.Name+' - '+ AInstance.Status);

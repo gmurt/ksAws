@@ -58,7 +58,7 @@ end;
 
 procedure TForm10.FormCreate(Sender: TObject);
 begin
-  FAwsS3 := CreateAwsS3(C_S3_PUBLIC, C_S3_PRIVATE, C_AWS_RGN);
+  FAwsS3 := CreateAwsS3(C_S3_ACCESS_KEY, C_S3_SECRET_KEY, C_AWS_RGN);
 end;
 
 procedure TForm10.ListBox1Click(Sender: TObject);

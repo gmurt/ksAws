@@ -35,14 +35,14 @@ var
   AInstance: IksAwsRDSInstance;
 begin
   lbInstances.Items.Create;
-  if Pos('*', C_RDS_PUBLIC) > 0 then
+  if Pos('*', C_RDS_ACCESS_KEY) > 0 then
   begin
-    ShowMessage('Please replace the C_RDS_PUBLIC and C_RDS_PRIVATE const in the credentials.inc file.');
+    ShowMessage('Please replace the C_RDS_ACCESS_KEY and C_RDS_SECRET_KEY const in the credentials.inc file.');
     Exit;
   end;
   AInstances := TksAwsRDSInstanceList.Create;
   try
-    AEc2 := CreateAwsRDS(C_RDS_PUBLIC, C_RDS_PRIVATE, awsEuWest1);
+    AEc2 := CreateAwsRDS(C_RDS_ACCESS_KEY, C_RDS_SECRET_KEY, awsEuWest1);
     AEc2.ListInstances(AInstances);
     for AInstance in AInstances do
       lbInstances.Items.Add(AInstance.Name+' - '+ AInstance.Status);

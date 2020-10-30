@@ -2,5 +2,5 @@
 // create in the IAM section of the AWS Console.
 
 const
-  C_EC2_PUBLIC  = '********************';
-  C_EC2_PRIVATE = '****************************************';
+  C_EC2_ACCESS_KEY  = '********************';
+  C_EC2_SECRET_KEY = '****************************************';

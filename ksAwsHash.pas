@@ -26,21 +26,22 @@ unit ksAwsHash;
 
 interface
 
-uses IdGlobal;
+{$I include.inc}
+
+uses Classes {$IFDEF USE_INDY} ,IdGlobal {$ENDIF};
 
   function URLEncode(AUrl: string): string;
   function ParamEncode(AParam: string): string;
+  function GetHashSHA256Hex(AValue: string): string; overload;
+  function GetHashSHA256Hex(AValue: TStream): string; overload;
 
   function GenerateSignature(ARequestTime: TDateTime; AStringToSign, APrivateKey, ARegionStr, AServiceName: string): string;
 
-{$I include.inc}
 
   {$IFDEF USE_INDY}
-  function GetHashSHA256Hex( HashString: string): string;
   function CalculateHMACSHA256Hex(const AValue: string; const AKey: TIdBytes): string;
   function CalculateHMACSHA256(const AValue: string; const AKey: TIdBytes): TIdBytes;
   {$ELSE}
-  function GetHashSHA256Hex( HashString: string): string;
   function CalculateHMACSHA256(const AValue: string; const AKey: TArray<Byte>): TArray<Byte>;
   function CalculateHMACSHA256Hex(const AValue: string; const AKey: TArray<Byte>): string;
   {$ENDIF}
@@ -88,18 +89,33 @@ begin
   Result := LowerCase(CalculateHMACSHA256Hex(AStringToSign, ASigningKeyIndy));
 end;
 
-function GetHashSHA256Hex( HashString: string): string;
+function GetHashSHA256Hex(AValue: string): string;
 var
- sha: TIdHashSHA256;
+  ASha256: TIdHashSHA256;
 begin
   if TIdHashSHA256.IsAvailable then
   begin
-   sha:= TIdHashSHA256.Create;
+   ASha256:= TIdHashSHA256.Create;
    try
-     Result := LowerCase(sha.HashStringAsHex(HashString));
+     Result := LowerCase(ASha256.HashStringAsHex(AValue));
    finally
-    sha.Free;
+    ASha256.Free;
    end;
+  end;
+end;
+
+function GetHashSHA256Hex(AValue: TStream): string;
+var
+  ASha256: TIdHashSHA256;
+begin
+  if TIdHashSHA256.IsAvailable then
+  begin
+    ASha256 := TIdHashSHA256.Create;
+    try
+      Result := LowerCase(ASha256.HashStreamAsHex(AValue));
+    finally
+      ASha256.Free;
+    end;
   end;
 end;
 
@@ -125,14 +141,12 @@ end;
 
 function CalculateHMACSHA256Hex(const AValue: string; const AKey: TIdBytes): string;
 begin
-  Result := ToHex(CalculateHMACSHA256(AValue, AKey)); // THash.DigestAsString(CalculateHMACSHA256(AValue, AKey));
+  Result := ToHex(CalculateHMACSHA256(AValue, AKey));
 end;
 
 {$ELSE}
 
 function ParamEncode(AParam: string): string;
-var
-  AUnsafeChars: array of byte;
 begin
   Result := TNetEncoding.URL.EncodeQuery(AParam,  [Ord('"'), Ord(''''), Ord(':'), Ord(';'), Ord('<'), Ord('='), Ord('>'),
       Ord('@'), Ord('['), Ord(']'), Ord('^'), Ord('`'), Ord('{'), Ord('}'), Ord('|'), Ord('/'), Ord('\'), Ord('?'), Ord('#'),
@@ -154,9 +168,15 @@ begin
   Result := CalculateHMACSHA256Hex(AStringToSign, ASigningKey);
 end;
 
-function GetHashSHA256Hex( HashString: string): string;
+function GetHashSHA256Hex(AValue: string): string;
 begin
-  Result := THash.DigestAsString(THashSHA2.GetHashBytes(HashString));
+  Result := THash.DigestAsString(THashSHA2.GetHashBytes(AValue));
+end;
+
+function GetHashSHA256Hex(AValue: TStream): string;
+begin
+  AValue.Position := 0;
+  Result := THash.DigestAsString(THashSHA2.GetHashBytes(AValue));
 end;
 
 function CalculateHMACSHA256(const AValue: string; const AKey: TArray<Byte>): TArray<Byte>;

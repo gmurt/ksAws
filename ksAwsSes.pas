@@ -57,7 +57,7 @@ type
     procedure VerifyEmailIdentity(AEmailAddress: string);
   end;
 
-  function CreateSes(APublicKey, APrivateKey: string; ARegion: TksAwsRegion): IksAwsSES;
+  function CreateSes(AAccessKey, ASecretKey: string; ARegion: TksAwsRegion): IksAwsSES;
   function CreateSesMessage(ARecipient, ASender, ASubject, ABody: string): IksAwsSesMessage;
 
 
@@ -110,9 +110,9 @@ type
   end;
 
 
-function CreateSes(APublicKey, APrivateKey: string; ARegion: TksAwsRegion): IksAwsSES;
+function CreateSes(AAccessKey, ASecretKey: string; ARegion: TksAwsRegion): IksAwsSES;
 begin
-  Result := TksAwsSES.Create(APublicKey, APrivateKey, ARegion);
+  Result := TksAwsSES.Create(AAccessKey, ASecretKey, ARegion);
 end;
 
 function CreateSesMessage(ARecipient, ASender, ASubject, ABody: string): IksAwsSesMessage;

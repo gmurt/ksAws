@@ -2,5 +2,5 @@
 // create in the IAM section of the AWS Console.
 
 const
-  C_RDS_PUBLIC  = '********************';
-  C_RDS_PRIVATE = '****************************************';
+  C_RDS_ACCESS_KEY = '********************';
+  C_RDS_SECRET_KEY = '****************************************';

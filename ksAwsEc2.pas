@@ -52,7 +52,7 @@ type
     procedure StopInstances(AInstanceIDs: array of string);
   end;
 
-  function CreateAwsEc2(APublicKey, APrivateKey: string; ARegion: TksAwsRegion): IksAwsEc2;
+  function CreateAwsEc2(AAccessKey, ASecretKey: string; ARegion: TksAwsRegion): IksAwsEc2;
 
 
 implementation
@@ -88,9 +88,9 @@ type
     procedure StopInstances(AInstanceIDs: array of string);
   end;
 
-function CreateAwsEc2(APublicKey, APrivateKey: string; ARegion: TksAwsRegion): IksAwsEc2;
+function CreateAwsEc2(AAccessKey, ASecretKey: string; ARegion: TksAwsRegion): IksAwsEc2;
 begin
-  Result := TksAwsEC2.Create(APublicKey, APrivateKey, ARegion);
+  Result := TksAwsEC2.Create(AAccessKey, ASecretKey, ARegion);
 end;
 
 { TksAwsEC2Instance }

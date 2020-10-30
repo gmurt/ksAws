@@ -43,7 +43,7 @@ type
   protected
     function Head(AUrl: string; AHeaders: TStrings): IksAwsHttpResponse;
     function Get(AUrl: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
-    function Put(AUrl, APayload: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
+    function Put(AUrl: string; APayload: TStream; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
     function Post(AUrl, APayload: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
     function Delete(AUrl: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
   end;
@@ -138,19 +138,16 @@ begin
   end;
 end;
 
-function TksAwsNetHttp.Put(AUrl, APayload: string; AHeaders: TStrings;
+function TksAwsNetHttp.Put(AUrl: string; APayload: TStream; AHeaders: TStrings;
   const AResponseStream: TStream): IksAwsHttpResponse;
 var
   AHttp: THTTPClient;
-  AContentStream: TStringStream;
 begin
   AHttp := CreateHttp(AHeaders);
-  AContentStream := TStringStream.Create(APayload);
   try
-    Result := ResponseToKsHttpResponse(AHttp.Put(AUrl, AContentStream, AResponseStream));
+    Result := ResponseToKsHttpResponse(AHttp.Put(AUrl, APayload, AResponseStream));
   finally
     AHttp.Free;
-    AContentStream.Free;
   end;
 end;
 
