@@ -58,10 +58,9 @@ uses ksAwsConst, SysUtils,
   ;
 
 const
-  C_UNSAFE_CHARS: array of Byte = [Ord('"'), Ord(''''), Ord(':'), Ord(';'), Ord('<'), Ord('='), Ord('>'),
+  C_UNSAFE_CHARS: array[1..27] of Byte = (Ord(' '), Ord('"'), Ord(''''), Ord(':'), Ord(';'), Ord('<'), Ord('='), Ord('>'),
       Ord('@'), Ord('['), Ord(']'), Ord('^'), Ord('`'), Ord('{'), Ord('}'), Ord('|'), Ord('/'), Ord('\'), Ord('?'), Ord('#'),
-      Ord('&'), Ord('!'), Ord('$'), Ord('('), Ord(')'), Ord(','), Ord('~')];
-  //C_UNSAFE_CHARS: array[0..20] of Char = ('''', '"', ' ',':', '/', '?', '#', '[', ']', '@', '!', '$', '&', '''', '(', ')', '*', '+', ',', ';', '=');
+      Ord('&'), Ord('!'), Ord('$'), Ord('('), Ord(')'), Ord(','), Ord('~'));
 
 {$IFDEF USE_INDY}
 
