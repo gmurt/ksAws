@@ -34,11 +34,13 @@ type
   ['{A58BC820-722F-4E68-8DE6-029A007FA29F}']
     function GetBcc: TStrings;
     function GetBody: string;
+    function GetHtml: string;
     function GetCc: TStrings;
     function GetRecipients: TStrings;
     function GetSender: string;
     function GetSubject: string;
     procedure SetBody(const Value: string);
+    procedure SetHtml(const Value: string);
     procedure SetSender(const Value: string);
     procedure SetSubject(const Value: string);
     property Sender: string read GetSender write SetSender;
@@ -47,6 +49,7 @@ type
     property Bcc: TStrings read GetBcc;
     property Subject: string read GetSubject write SetSubject;
     property Body: string read GetBody write SetBody;
+    property Html: string read GetHtml write SetHtml;
   end;
 
   IksAwsSES = interface
@@ -58,7 +61,7 @@ type
   end;
 
   function CreateSes(AAccessKey, ASecretKey: string; ARegion: TksAwsRegion): IksAwsSES;
-  function CreateSesMessage(ARecipient, ASender, ASubject, ABody: string): IksAwsSesMessage;
+  function CreateSesMessage(ARecipient, ASender, ASubject, ABody: string; const AIsHtml: Boolean = True): IksAwsSesMessage;
 
 
 implementation
@@ -71,6 +74,7 @@ type
     FSender: string;
     FSubject: string;
     FBody: string;
+    FHtml: string;
     FRecipients: TStrings;
     FCc: TStrings;
     FBcc: TStrings;
@@ -83,6 +87,8 @@ type
     procedure SetBody(const Value: string);
     procedure SetSender(const Value: string);
     procedure SetSubject(const Value: string);
+    function GetHtml: string;
+    procedure SetHtml(const Value: string);
   protected
     property Sender: string read GetSender write SetSender;
     property Recipients: TStrings read GetRecipients;
@@ -90,6 +96,7 @@ type
     property Bcc: TStrings read GetBcc;
     property Subject: string read GetSubject write SetSubject;
     property Body: string read GetBody write SetBody;
+    property Html: string read GetHtml write SetHtml;
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -115,13 +122,16 @@ begin
   Result := TksAwsSES.Create(AAccessKey, ASecretKey, ARegion);
 end;
 
-function CreateSesMessage(ARecipient, ASender, ASubject, ABody: string): IksAwsSesMessage;
+function CreateSesMessage(ARecipient, ASender, ASubject, ABody: string; const AIsHtml: Boolean = True): IksAwsSesMessage;
 begin
   Result := TksAwsSesMessage.Create;
   Result.Recipients.Add(ARecipient);
   Result.Sender := ASender;
   Result.Subject := ASubject;
-  Result.Body := ABody;
+  case AIsHtml of
+    True: Result.Html := ABody;
+    False: Result.Body := ABody;
+  end;
 end;
 
 { TksAwsSesMessage }
@@ -156,6 +166,11 @@ begin
   Result := FCc;
 end;
 
+function TksAwsSesMessage.GetHtml: string;
+begin
+  Result := FHtml;
+end;
+
 function TksAwsSesMessage.GetRecipients: TStrings;
 begin
   Result := FRecipients;
@@ -175,6 +190,11 @@ end;
 procedure TksAwsSesMessage.SetBody(const Value: string);
 begin
   FBody := Value;
+end;
+
+procedure TksAwsSesMessage.SetHtml(const Value: string);
+begin
+  FHtml := Value;
 end;
 
 procedure TksAwsSesMessage.SetSender(const Value: string);
@@ -275,6 +295,7 @@ begin
     BuildDestinationParams('bcc', AMessage.Bcc, AParams);
     AParams.Values['Message.Subject.Data'] := AMessage.Subject;
     AParams.Values['Message.Body.Text.Data'] := AMessage.Body;
+    AParams.Values['Message.Body.Html.Data'] := AMessage.Html;
     AResponse := ExecuteHttp('POST', 'SendEmail', Host, '', '', nil, AParams).ContentAsString;
   finally
     AParams.Free;
