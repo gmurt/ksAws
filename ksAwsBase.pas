@@ -95,8 +95,6 @@ begin
   Result := C_PROTOCOL+'://'+AHost+APath+Result;
 end;
 
-
-
 function TksAwsBaseService.RegionToStr(ARegion: TksAwsRegion): string;
 begin
   case ARegion of

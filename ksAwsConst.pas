@@ -31,9 +31,11 @@ const
   C_SERVICE_SES       = 'email';
   C_SERVICE_EC2       = 'ec2';
   C_SERVICE_RDS       = 'rds';
+  C_SERVICE_SNS       = 'sns';
 
   C_EC2_API_VERSION   = '2016-11-15';
   C_RDS_API_VERSION   = '2014-10-31';
+  C_SNS_API_VERSION   = '2010-03-31';
 
   C_GET               = 'GET';
   C_HEAD              = 'HEAD';
