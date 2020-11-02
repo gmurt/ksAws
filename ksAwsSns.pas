@@ -57,7 +57,10 @@ type
 
   IksAwsSNS = interface
   ['{8D5D089F-BA87-457D-BB51-693B551920C1}']
-    procedure ListSubscriptions(ASubscriptions: TksAwsSnsSubscriptionList; const AMaxItems: Integer = 0);
+    procedure CreateTopic(ATopicName: string);
+    procedure DeleteTopic(ATopicArn: string);
+    procedure ListSubscriptions(ASubscriptions: TksAwsSnsSubscriptionList);
+    procedure ListSubscriptionsByTopic(ATopicArn: string; ASubscriptions: TksAwsSnsSubscriptionList);
     procedure ListTopics(ATopics: TStrings; const AMaxItems: integer = 0);
   end;
 
@@ -98,7 +101,10 @@ type
   protected
     function GetApiVersion: string; override;
     function GetServiceName: string; override;
-    procedure ListSubscriptions(ASubscriptions: TksAwsSnsSubscriptionList; const AMaxItems: Integer = 0);
+    procedure CreateTopic(ATopicName: string);
+    procedure DeleteTopic(ATopicArn: string);
+    procedure ListSubscriptions(ASubscriptions: TksAwsSnsSubscriptionList);
+    procedure ListSubscriptionsByTopic(ATopicArn: string; ASubscriptions: TksAwsSnsSubscriptionList);
     procedure ListTopics(ATopics: TStrings; const AMaxItems: integer = 0);
   public
     { Public declarations }
@@ -112,6 +118,32 @@ end;
 
 { TksAwsSNS }
 
+procedure TksAwsSNS.CreateTopic(ATopicName: string);
+var
+  AParams: TStrings;
+begin
+  AParams := TStringList.Create;
+  try
+    AParams.Values['Name'] := ATopicName;
+    ExecuteHttp(C_POST, 'CreateTopic', Host, '', '', nil, AParams).ContentAsString;
+  finally
+    AParams.Free;
+  end;
+end;
+
+procedure TksAwsSNS.DeleteTopic(ATopicArn: string);
+var
+  AParams: TStrings;
+begin
+  AParams := TStringList.Create;
+  try
+    AParams.Values['TopicArn'] := ATopicArn;
+    ExecuteHttp(C_GET, 'DeleteTopic', Host, '', '', nil, AParams).ContentAsString;
+  finally
+    AParams.Free;
+  end;
+end;
+
 function TksAwsSNS.GetApiVersion: string;
 begin
   Result := C_SNS_API_VERSION;
@@ -123,7 +155,12 @@ begin
 end;
 
 
-procedure TksAwsSNS.ListSubscriptions(ASubscriptions: TksAwsSnsSubscriptionList; const AMaxItems: Integer = 0);
+procedure TksAwsSNS.ListSubscriptions(ASubscriptions: TksAwsSnsSubscriptionList);
+begin
+  ListSubscriptionsByTopic('', ASubscriptions);
+end;
+
+procedure TksAwsSNS.ListSubscriptionsByTopic(ATopicArn: string; ASubscriptions: TksAwsSnsSubscriptionList);
 var
   AResponse: string;
   AParams: TStrings;
@@ -142,8 +179,8 @@ begin
   begin
     AParams := TStringList.Create;
     try
-      if AMaxItems > 0 then
-        AParams.Values['MaxItems'] := IntToStr(Min(AMaxItems, 100));
+
+      AParams.Values['TopicArn'] := ATopicArn;
       AParams.Values['NextToken'] :=  ANextToken;
       AResponse := ExecuteHttp(C_GET, 'ListSubscriptions', Host, '', '', nil, AParams).ContentAsString;
     finally
@@ -156,12 +193,9 @@ begin
     for ICount := 0 to ANode.ChildNodes.Count -1 do
     begin
       AMember := ANode.ChildNodes[ICount];
-      if (AMaxItems = 0) or (ASubscriptions.Count < AMaxItems) then
-      begin
-        ASubscriptions.AddSubscription.LoadFromXML(AMember);
-      end;
+      ASubscriptions.AddSubscription.LoadFromXML(AMember);
     end;
-    AComplete := (ANextToken = '') or (ASubscriptions.Count >= AMaxItems);
+    AComplete := (ANextToken = '') ;
   end;
 end;
 

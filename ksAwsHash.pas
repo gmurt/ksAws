@@ -67,7 +67,6 @@ const
 function ParamEncode(AParam: string): string;
 var
   AChar: Cardinal;
-  AHex: string;
 begin
   Result := TIdURI.ParamsEncode(AParam);
   for AChar in C_UNSAFE_CHARS do
