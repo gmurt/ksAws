@@ -200,7 +200,8 @@ var
   ASignature: string;
   AAmzDate: string;
   AAuthHeader: string;
-  ANow: TDateTime;
+  //ANow: TDateTime;
+  ANowUtc: TDateTime;
   AShortDate: string;
   AHash: string;
   AUrl: string;
@@ -227,13 +228,15 @@ begin
       AParams.AddStrings(AQueryParams);
     AParams.Values['Action'] := AAction;
     AParams.Values['Version'] := GetApiVersion;
-    ANow := Now;
+    //ANow := Now;
+    ANowUtc := TTimeZone.Local.ToUniversalTime(Now);
+
     if Pos('/', APath) <> 1 then
       APath := '/'+APath;
     AHash := GetHashSHA256Hex(APayload);
     if AExtraHeaders <> nil then
       AHeaders.AddStrings(AExtraHeaders);
-    GetHeaders(ANow, AHost, APayload, AHeaders);
+    GetHeaders(Now, AHost, APayload, AHeaders);
     ADelimitedHeaders := '';
     for ICount := 0 to AHeaders.Count-1 do
     begin
@@ -241,17 +244,17 @@ begin
       if ICount < AHeaders.Count-1 then
         ADelimitedHeaders := ADelimitedHeaders + ';';
     end;
-    AAmzDate := FormatDateTime(C_AMZ_DATE_FORMAT, TTimeZone.Local.ToUniversalTime(ANow), TFormatSettings.Create('en-US'));
-    AShortDate := FormatDateTime(C_SHORT_DATE_FORMAT, TTimeZone.Local.ToUniversalTime(ANow), TFormatSettings.Create('en-US'));
+    AAmzDate := FormatDateTime(C_AMZ_DATE_FORMAT, ANowUtc, TFormatSettings.Create('en-US'));
+    AShortDate := FormatDateTime(C_SHORT_DATE_FORMAT, ANowUtc, TFormatSettings.Create('en-US'));
 
     ACanonical := GenerateCanonicalRequest(AVerb, AHost, APath, APayload, AHeaders, AParams);
     AStringToSign := C_HASH_ALGORITHM +C_LF +
                      AAmzDate +C_LF+
-                     FormatDateTime(C_SHORT_DATE_FORMAT, ANow) +'/'+ ARegion +'/'+ ServiceName +'/aws4_request' +C_LF+
+                     FormatDateTime(C_SHORT_DATE_FORMAT, ANowUtc) +'/'+ ARegion +'/'+ ServiceName +'/aws4_request' +C_LF+
                      GetHashSHA256Hex(ACanonical);
-    ASignature := GenerateSignature(ANow, AStringToSign, FSecretKey, ARegion, ServiceName);
+    ASignature := GenerateSignature(ANowUtc, AStringToSign, FSecretKey, ARegion, ServiceName);
     AAuthHeader := C_HASH_ALGORITHM+' Credential='+FAccessKey+'/'+
-                   FormatDateTime(C_SHORT_DATE_FORMAT, ANow)+'/'+
+                   FormatDateTime(C_SHORT_DATE_FORMAT, ANowUtc)+'/'+
                    ARegion+'/'+
                    ServiceName+'/'+
                    'aws4_request,SignedHeaders='+ADelimitedHeaders+',Signature='+ASignature;

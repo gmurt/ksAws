@@ -54,7 +54,11 @@ type
 
   IksAwsSES = interface
   ['{95F8984E-2A05-4071-B906-67CDBCBEA51A}']
+    function GetVerificationStatus(AEmail: string): string;
+    procedure GetVerifiedEmails(ACheckEmails, AResult: TStrings);
+
     procedure GetSenders(ASenders: TStrings; const ALimit: integer = 0);
+    //procedure GetVerifiedEmails(AVerifiedEmails: TStrings);
     procedure DeleteIdentity(AIdentity: string);
     procedure SendEmail(AMessage: IksAwsSesMessage);
     procedure VerifyEmailIdentity(AEmailAddress: string);
@@ -66,7 +70,7 @@ type
 
 implementation
 
-uses ksAwsConst, Xml.xmldom, Xml.XMLIntf, Xml.XMLDoc, Math, ksAwsHash;
+uses ksAwsConst, Xml.xmldom, Xml.XMLIntf, Xml.XMLDoc, Math, ksAwsHash, ClipBrd;
 
 type
   TksAwsSesMessage = class(TInterfacedObject, IksAwsSesMessage)
@@ -108,10 +112,15 @@ type
     { Private declarations }
   protected
     function GetServiceName: string; override;
+    function GetVerificationStatus(AEmail: string): string; overload;
+    procedure GetVerifiedEmails(ACheckEmails, AResult: TStrings);
+
     procedure DeleteIdentity(AIdentity: string);
+    //procedure GetVerifiedEmails(AVerifiedEmails: TStrings);
     procedure GetSenders(ASenders: TStrings; const AMaxItems: integer = 0);
     procedure SendEmail(AMessage: IksAwsSesMessage);
     procedure VerifyEmailIdentity(AEmailAddress: string);
+
   public
     { Public declarations }
   end;
@@ -281,6 +290,116 @@ function TksAwsSES.GetServiceName: string;
 begin
   Result := C_SERVICE_SES;
 end;
+
+function TksAwsSES.GetVerificationStatus(AEmail: string): string;
+var
+  AResponse: string;
+  AParams: TStrings;
+  ICount: integer;
+  AStrings: TStrings;
+  AStr: string;
+begin
+  Result := '';
+  AStrings := TStringList.Create;
+  AParams := TStringList.Create;
+  try
+    AParams.Values['Identities.member.'+IntToStr(1)] := AEmail;
+    AResponse := ExecuteHttp('POST', 'GetIdentityVerificationAttributes', Host, '', '', nil, AParams).ContentAsString;
+    AStrings.Text := AResponse;
+    for ICount := 0 to AStrings.Count-1 do
+    begin
+      AStr := Trim(AStrings[ICount]).ToLower;
+      if Pos('<verificationstatus>', AStr) > 0 then
+      begin
+        AStr := StringReplace(AStr, '<verificationstatus>', '', []);
+        AStr := StringReplace(AStr, '</verificationstatus>', '', []);
+        Result := AStr;
+        Exit;
+      end;
+    end;
+  finally
+    AParams.Free;
+    AStrings.Free;
+  end;
+end;
+
+procedure TksAwsSES.GetVerifiedEmails(ACheckEmails, AResult: TStrings);
+var
+  AResponse: string;
+  AParams: TStrings;
+  ICount: integer;
+  AStrings: TStrings;
+  AStr: string;
+  AXml: IXmlDocument;
+  ANode: IXMLNode;
+  AItem: IXMLNode;
+  AEmail: string;
+  AStatus: IXmlNode;
+begin
+  AResult.Clear;
+  AStrings := TStringList.Create;
+  AParams := TStringList.Create;
+  try
+    for ICount := 1 to ACheckEmails.Count do
+      AParams.Values['Identities.member.'+IntToStr(ICount)] := ACheckEmails[ICount-1];
+
+    AResponse := ExecuteHttp('POST', 'GetIdentityVerificationAttributes', Host, '', '', nil, AParams).ContentAsString;
+    AXml := TXMLDocument.Create(nil);
+    AXml.LoadFromXML(AResponse);
+    ANode := AXml.ChildNodes.FindNode('GetIdentityVerificationAttributesResponse');
+    if ANode = nil then
+      Exit;
+    ANode := ANode.ChildNodes.FindNode('GetIdentityVerificationAttributesResult');
+    ANode := ANode.ChildNodes.FindNode('VerificationAttributes');
+
+    for ICount := 0 to ANode.ChildNodes.Count-1 do
+    begin
+      AItem := ANode.ChildNodes[ICount];
+      AEmail := AItem.ChildNodes.FindNode('key').NodeValue;
+      AStatus := AItem.ChildNodes.FindNode('value');
+      if AStatus <> nil then
+      begin
+        AStatus := AStatus.ChildNodes.FindNode('VerificationStatus');
+        AStr := AStatus.NodeValue;
+        AStr := AStr.ToLower;
+        if AStr = 'success' then
+        begin
+          AResult.Add(AEmail)
+        end;
+      end;
+    end;
+
+
+    {AStrings.Text := AResponse;
+    Clipboard.AsText :=  AResponse;
+    for ICount := 0 to AStrings.Count-1 do
+    begin
+      AStr := Trim(AStrings[ICount]).ToLower;
+      if Pos('<verificationstatus>', AStr) > 0 then
+      begin
+        AStr := StringReplace(AStr, '<verificationstatus>', '', []);
+        AStr := StringReplace(AStr, '</verificationstatus>', '', []);
+        Result := AStr;
+        Exit;
+      end;
+    end;}
+  finally
+    AParams.Free;
+   // AStrings.Free;
+  end;
+end;
+                                                                {
+procedure TksAwsSES.GetVerifiedEmails(AVerifiedEmails: TStrings);
+var
+  AEmails: TStrings;
+begin
+  AEmails := TStringList.Create;
+  try
+    GetSenders(AEmails);
+  finally
+    AEmails.Free;
+  end;
+end;    }
 
 procedure TksAwsSES.SendEmail(AMessage: IksAwsSesMessage);
 var
