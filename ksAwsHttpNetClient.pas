@@ -44,7 +44,8 @@ type
     function Head(AUrl: string; AHeaders: TStrings): IksAwsHttpResponse;
     function Get(AUrl: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
     function Put(AUrl: string; APayload: TStream; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
-    function Post(AUrl, APayload: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
+    function Post(AUrl, APayload: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse; overload;
+    function Post(AUrl: string; APayload: TStream; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse; overload;
     function Delete(AUrl: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
   end;
 
@@ -61,7 +62,6 @@ begin
   AResponse.ContentStream.Position := 0;
   Result.ContentStream.CopyFrom(AResponse.ContentStream, AResponse.ContentStream.Size);
   Result.StatusCode := AResponse.StatusCode;
-  Result.ETag := AResponse.HeaderValue['ETag'];
   Result.ETag := AResponse.HeaderValue['ETag'];
   Result.LastModified := AResponse.LastModified;
   Result.HeaderValue['x-amz-bucket-region'] := AResponse.HeaderValue['x-amz-bucket-region'];
@@ -135,6 +135,19 @@ begin
   finally
     AHttp.Free;
     AContentStream.Free;
+  end;
+end;
+
+function TksAwsNetHttp.Post(AUrl: string; APayload: TStream; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
+var
+  AHttp: THTTPClient;
+begin
+  AHttp := CreateHttp(AHeaders);
+  try
+    APayload.Position := 0;
+    Result := ResponseToKsHttpResponse(AHttp.Post(AUrl, APayload, AResponseStream));
+  finally
+    AHttp.Free;
   end;
 end;
 

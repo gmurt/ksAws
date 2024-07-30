@@ -28,7 +28,7 @@ interface
 
 const
   C_SERVICE_S3        = 's3';
-  C_SERVICE_SES       = 'email';
+  C_SERVICE_SES       = 'ses';
   C_SERVICE_EC2       = 'ec2';
   C_SERVICE_RDS       = 'rds';
   C_SERVICE_SNS       = 'sns';

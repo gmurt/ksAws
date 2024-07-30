@@ -42,12 +42,15 @@ type
     function GetSize: integer;
     function GetETag: string;
     function GetLastModified: string;
+    function GetAsText: string;
     procedure SaveToFile(AFilename: string);
+    procedure SetAsText(const Value: string);
     property Key: string read GetKey;
     property Stream: TStream read GetStream;
     property Size: integer read GetSize;
     property ETag: string read GetETag;
     property LastModified: string read GetLastModified;
+    property AsText: string read GetAsText write SetAsText;
   end;
 
   IksAwsS3 = interface
@@ -55,12 +58,13 @@ type
     function GetBucketLocation(ABucketName: string): string;
     function BucketExists(ABucketName: string): Boolean;
     function GetObject(ABucketName, AObjectName: string): IksAwsS3Object;
+    function DeleteObject(ABucketName, AObjectName: string): Boolean;
     function CreateBucket(ABucketName: string; AAcl: TksS3Acl): Boolean;
     function DeleteBucket(ABucketName: string): Boolean;
     procedure GetBuckets(ABuckets: TStrings);
     procedure GetBucket(ABucketName: string; AContents: TStrings);
-    procedure PutObject(ABucketName, APath: string; AObject: TStream; AOptions: TksS3PutOptions); overload;
-    procedure PutObject(ABucketName, APath, AFilename: string; AOptions: TksS3PutOptions); overload;
+    procedure PutObject(ABucketName, APath: string; AObject: TStream; AOptions: TksS3PutOptions; const AExtraHeaders: TStrings = nil); overload;
+    procedure PutObject(ABucketName, APath, AFilename: string; AOptions: TksS3PutOptions; const AExtraHeaders: TStrings = nil); overload;
   end;
 
   function CreateAwsS3(AAccessKey, ASecretKey: string; ARegion: TksAwsRegion): IksAwsS3;
@@ -82,6 +86,8 @@ type
     function GetSize: integer;
     function GetKey: string;
     function GetLastModified: string;
+    function GetAsText: string;
+    procedure SetAsText(const Value: string);
   protected
     procedure SaveToFile(AFilename: string);
 
@@ -112,8 +118,9 @@ type
     function DeleteBucket(ABucketName: string): Boolean;
     procedure GetBuckets(AStrings: TStrings);
     procedure GetBucket(ABucketName: string; AStrings: TStrings);
-    procedure PutObject(ABucketName, APath: string; AContent: TStream; AOptions: TksS3PutOptions); overload;
-    procedure PutObject(ABucketName, APath, AFilename: string; AOptions: TksS3PutOptions); overload;
+    function DeleteObject(ABucketName, AObjectName: string): Boolean;
+    procedure PutObject(ABucketName, APath: string; AContent: TStream; AOptions: TksS3PutOptions; const AExtraHeaders: TStrings = nil); overload;
+    procedure PutObject(ABucketName, APath, AFilename: string; AOptions: TksS3PutOptions; const AExtraHeaders: TStrings = nil); overload;
   end;
 
 function CreateAwsS3(AAccessKey, ASecretKey: string; ARegion: TksAwsRegion): IksAwsS3;
@@ -142,6 +149,20 @@ destructor TksAwsS3Object.Destroy;
 begin
   FStream.Free;
   inherited;
+end;
+
+function TksAwsS3Object.GetAsText: string;
+var
+  AStrings: TStrings;
+begin
+  AStrings := TStringList.Create;
+  try
+    FStream.Position := 0;
+    AStrings.LoadFromStream(FStream);
+    Result := AStrings.Text;
+  finally
+    AStrings.Free;
+  end;
 end;
 
 function TksAwsS3Object.GetETag: string;
@@ -174,12 +195,27 @@ begin
   (FStream as TMemoryStream).SaveToFile(AFilename);
 end;
 
+procedure TksAwsS3Object.SetAsText(const Value: string);
+var
+  AStrings: TStrings;
+begin
+  AStrings := TStringList.Create;
+  try
+    (FStream as TMemoryStream).Clear;
+    AStrings.Text := Value;
+    AStrings.SaveToStream(FStream);
+    FStream.Position := 0;
+  finally
+    AStrings.Free;
+  end;
+end;
+
 { TksAwsS3 }
 
 function TksAwsS3.BucketExists(ABucketName: string): Boolean;
 
 begin
-  Result := ExecuteHttp(C_HEAD, '', ABucketName+'.'+Host, '/', '', nil, nil).StatusCode = 200;
+  Result := ExecuteHttp(C_HEAD, '', ABucketName+'.'+Host, '/', nil, nil, '').StatusCode = 200;
 end;
 
 function TksAwsS3.CreateBucket(ABucketName: string; AAcl: TksS3Acl): Boolean;
@@ -192,7 +228,7 @@ begin
   try
     AHeaders.Values['x-amz-acl'] := GetAclString(AAcl);
     APayload := GetPayload(C_PAYLOAD_CREATE_BUCKET);
-    AResponse := ExecuteHttp(C_PUT, '', ABucketName+'.'+Host, '/', APayload, AHeaders, nil).ContentAsString;
+    AResponse := ExecuteHttp(C_PUT, '', ABucketName+'.'+Host, '/', AHeaders, nil, APayload).ContentAsString;
     Result := AResponse = '';
   finally
     AHeaders.Free;
@@ -203,9 +239,10 @@ function TksAwsS3.DeleteBucket(ABucketName: string): Boolean;
 var
   AResponse: string;
 begin
-  AResponse := ExecuteHttp(C_DELETE, '', ABucketName+'.'+Host, '/', '', nil, nil).ContentAsString;
+  AResponse := ExecuteHttp(C_DELETE, '', ABucketName+'.'+Host, '/', nil, nil, '').ContentAsString;
   Result := AResponse = '';
 end;
+
 
 function TksAwsS3.GetAclString(AAcl: TksS3Acl): string;
 begin
@@ -240,7 +277,7 @@ function TksAwsS3.GetBucketLocation(ABucketName: string): string;
 var
   AResponse: IksAwsHttpResponse;
 begin
-  AResponse := ExecuteHttp(C_HEAD, '', ABucketName+'.'+Host, '', '', nil, nil, True, nil);
+  AResponse := ExecuteHttp(C_HEAD, '', ABucketName+'.'+Host, '', nil, nil, '', True, nil);
   Result := AResponse.HeaderValue['x-amz-bucket-region'];
 end;
 
@@ -271,7 +308,7 @@ begin
   AParams := TStringList.Create;
   AStream := TMemoryStream.Create;
   try
-    AResponse := ExecuteHttp(C_GET, '', ABucketName+'.'+Host, AObjectName, '', nil, AParams, True, AStream);
+    AResponse := ExecuteHttp(C_GET, '', ABucketName+'.'+Host, AObjectName, nil, AParams, '', True, AStream);
   AFilename := AObjectName;
   while Pos('/', AFilename) > 0 do
     AFilename := Copy(AFilename, Pos('/', AFilename)+1, Length(AFilename));
@@ -286,31 +323,47 @@ begin
   end;
 end;
 
+function TksAwsS3.DeleteObject(ABucketName, AObjectName: string): Boolean;
+begin
+  Result := True;
+  ExecuteHttp(C_DELETE, '', ABucketName+'.'+Host, AObjectName, nil, nil, '', True, nil);
+end;
+
 function TksAwsS3.GetServiceName: string;
 begin
   Result := C_SERVICE_S3;
 end;
 
-procedure TksAwsS3.PutObject(ABucketName, APath, AFilename: string; AOptions: TksS3PutOptions);
+procedure TksAwsS3.PutObject(ABucketName, APath, AFilename: string; AOptions: TksS3PutOptions; const AExtraHeaders: TStrings = nil);
 var
   AStream: TMemoryStream;
 begin
   AStream := TMemoryStream.Create;
   try
     AStream.LoadFromFile(AFilename);
-    PutObject(ABucketName, APath, AStream, AOptions);
+    PutObject(ABucketName, APath, AStream, AOptions, AExtraHeaders);
   finally
     AStream.Free;
   end;
 end;
 
-procedure TksAwsS3.PutObject(ABucketName, APath: string; AContent: TStream; AOptions: TksS3PutOptions);
+procedure TksAwsS3.PutObject(ABucketName, APath: string;
+                             AContent: TStream;
+                             AOptions: TksS3PutOptions;
+                             const AExtraHeaders: TStrings = nil);
 var
   AResponse: IksAwsHttpResponse;
   AHeaders: TStrings;
+  ICount: integer;
+
 begin
   AHeaders := TStringList.Create;
   try
+    if Assigned(AExtraHeaders) then
+    begin
+      for ICount := 0 to AExtraHeaders.Count-1 do
+        AHeaders.Add(AExtraHeaders.Names[ICount]+'='+AExtraHeaders.ValueFromIndex[ICount]);
+    end;
     AHeaders.Values['x-amz-acl'] := GetAclString(AOptions.Acl);
     AResponse := ExecuteHttp(C_PUT, '', ABucketName+'.'+Host, APath, AHeaders, nil, AContent, True, nil);
   finally

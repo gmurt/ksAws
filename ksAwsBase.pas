@@ -43,12 +43,20 @@ type
   protected
     function GetApiVersion: string; virtual;
     function GetHost: string; virtual;
+    function GetHostSubdomain: string; virtual;
     function GetPayload(AStr: string): string;
     function GenerateUrl(ASubDomain, APath: string): string;
     function GetServiceName: string; virtual; abstract;
     function GenerateCanonicalRequest(AVerb, AHost, URI: string; APayload: TStream; AHeaders, AQueryValues: TStrings): string; overload;
+
+    //function ExecuteHttpNew(AVerb, AAction, AHost, APath: string; AExtraHeaders, AQueryParams: TStrings; AContent: string; const AUseRegion: Boolean = True; const AResponseStream: TStream = nil): IksAwsHttpResponse; overload;
+
+
+    //function ExecuteHttp(AVerb, AAction, AHost, APath: string; AContent: string): IksAwsHttpResponse; overload;
+    function ExecuteHttp(AVerb, AAction, AHost, APath: string; AExtraHeaders, AQueryParams: TStrings; AContent: string; const AUseRegion: Boolean = True; const AResponseStream: TStream = nil): IksAwsHttpResponse; overload;
     function ExecuteHttp(AVerb, AAction, AHost, APath: string; AExtraHeaders, AQueryParams: TStrings; AContent: TStream; const AUseRegion: Boolean = True; const AResponseStream: TStream = nil): IksAwsHttpResponse; overload;
-    function ExecuteHttp(AVerb, AAction, AHost, APath, APayload: string; AExtraHeaders, AQueryParams: TStrings; const AUseRegion: Boolean = True; const AResponseStream: TStream = nil): IksAwsHttpResponse; overload;
+
+    //function ExecuteHttp(AVerb, AAction, AHost, APath, APayload: string; AExtraHeaders, AQueryParams: TStrings; const AUseRegion: Boolean = True; const AResponseStream: TStream = nil): IksAwsHttpResponse; overload;
     function ExecuteHttpXml(AVerb, AAction, AHost, APath, APayload: string; AExtraHeaders, AQueryParams: TStrings; const AUseRegion: Boolean = True; const AResponseStream: TStream = nil): IXmlDocument;
   public
     constructor Create(AAccessKey, ASecretKey: string; ARegion: TksAwsRegion);
@@ -161,13 +169,19 @@ procedure TksAwsBaseService.GetHeaders(ARequestTime: TDateTime; AHost: string; A
 begin
   AHeaders.Values['host'] := Trim(UrlEncode(AHost));
   AHeaders.Values['x-amz-content-sha256'] := GetHashSHA256Hex(APayload);
-  AHeaders.Values['x-amz-date'] := FormatDateTime(C_AMZ_DATE_FORMAT, TTimeZone.Local.ToUniversalTime(ARequestTime), TFormatSettings.Create('en-US'));
-      (AHeaders as TStringList).Sort;
+  AHeaders.Values['x-amz-date'] := FormatDateTime(C_AMZ_DATE_FORMAT, TTimeZone.Local.ToUniversalTime(ARequestTime, True), TFormatSettings.Create('en-US'));
+  (AHeaders as TStringList).Sort;
+
 end;
 
 function TksAwsBaseService.GetHost: string;
 begin
-  Result := Format('%s.%s.%s', [ServiceName, RegionStr, C_AMAZON_DOMAIN]);
+  Result := Format('%s.%s.%s', [GetHostSubdomain, RegionStr, C_AMAZON_DOMAIN]);
+end;
+
+function TksAwsBaseService.GetHostSubdomain: string;
+begin
+  Result := GetServiceName;
 end;
 
 function TksAwsBaseService.GetPayload(AStr: string): string;
@@ -186,13 +200,64 @@ var
   AResponse: IksAwsHttpResponse;
 begin
   Result := TXMLDocument.Create(nil);
-  AResponse := ExecuteHttp(AVerb, AAction, AHost, APath, APayload, AExtraHeaders, AQueryParams, AUseRegion, AResponseStream);
+  AResponse := ExecuteHttp(AVerb, AAction, AHost, APath, AExtraHeaders, AQueryParams, APayload, AUseRegion, AResponseStream);
   Result.LoadFromXML(AResponse.ContentAsString);
+end;
+                 {
+function TksAwsBaseService.ExecuteHttpNew(AVerb, AAction, AHost, APath: string; AExtraHeaders, AQueryParams: TStrings; AContent: string; const AUseRegion: Boolean = True; const AResponseStream: TStream = nil): IksAwsHttpResponse;
+var
+  ARegion: string;
+  AHash: string;
+  AHeaders: TStrings;
+  AParams: TStrings;
+begin
+  ARegion := RegionStr;
+  if AUseRegion = False then
+    ARegion := RegionToStr(awsUsEast1);
+
+  AHeaders := TStringList.Create;
+  AParams := TStringList.Create;
+  try
+     AHash := GetHashSHA256Hex(AContent);
+
+
+  finally
+    AHeaders.Free;
+    AParams.Free;
+  end;
+end;        }
+
+function TksAwsBaseService.ExecuteHttp(AVerb,
+                                       AAction,
+                                       AHost,
+                                       APath: string;
+                                       AExtraHeaders,
+                                       AQueryParams: TStrings;
+                                       AContent: string;
+                                       const AUseRegion: Boolean = True;
+                                       const AResponseStream: TStream = nil): IksAwsHttpResponse;
+var
+  AStream: TStringStream;
+begin
+  AStream := TStringStream.Create(AContent, TEncoding.UTF8);
+  try
+    Result := ExecuteHttp(AVerb,
+                          AAction,
+                          AHost,
+                          APath,
+                          AExtraHeaders,
+                          AQueryParams,
+                          AStream,
+                          AUseRegion,
+                          AResponseStream);
+  finally
+    AStream.Free;
+  end;
+
 end;
 
 function TksAwsBaseService.ExecuteHttp(AVerb, AAction, AHost, APath: string; AExtraHeaders, AQueryParams: TStrings; AContent: TStream; const AUseRegion: Boolean = True; const AResponseStream: TStream = nil): IksAwsHttpResponse;
 var
-  APayload: TStringStream;
   AHttp: IksAwsHttp;
   AHeaders: TStrings;
   ACanonical: string;
@@ -200,7 +265,6 @@ var
   ASignature: string;
   AAmzDate: string;
   AAuthHeader: string;
-  //ANow: TDateTime;
   ANowUtc: TDateTime;
   AShortDate: string;
   AHash: string;
@@ -216,27 +280,27 @@ begin
 
   AHeaders := TStringList.Create;
   AParams := TStringList.Create;
-  APayload := TStringStream.Create;
   try
-    if AContent <> nil then
-    begin
-      APayload.CopyFrom(AContent, AContent.Size);
-      APayload.Position := 0;
-    end;
-    AContent.Position := 0;
     if AQueryParams <> nil then
       AParams.AddStrings(AQueryParams);
     AParams.Values['Action'] := AAction;
     AParams.Values['Version'] := GetApiVersion;
-    //ANow := Now;
+
+
+
     ANowUtc := TTimeZone.Local.ToUniversalTime(Now);
 
     if Pos('/', APath) <> 1 then
       APath := '/'+APath;
-    AHash := GetHashSHA256Hex(APayload);
+    AHash := GetHashSHA256Hex(AContent);
+    AContent.Position := 0;
+
     if AExtraHeaders <> nil then
       AHeaders.AddStrings(AExtraHeaders);
-    GetHeaders(Now, AHost, APayload, AHeaders);
+
+    GetHeaders(Now, AHost, AContent, AHeaders);
+
+
     ADelimitedHeaders := '';
     for ICount := 0 to AHeaders.Count-1 do
     begin
@@ -247,16 +311,16 @@ begin
     AAmzDate := FormatDateTime(C_AMZ_DATE_FORMAT, ANowUtc, TFormatSettings.Create('en-US'));
     AShortDate := FormatDateTime(C_SHORT_DATE_FORMAT, ANowUtc, TFormatSettings.Create('en-US'));
 
-    ACanonical := GenerateCanonicalRequest(AVerb, AHost, APath, APayload, AHeaders, AParams);
+    ACanonical := GenerateCanonicalRequest(AVerb, AHost, APath, AContent, AHeaders, AParams);
     AStringToSign := C_HASH_ALGORITHM +C_LF +
                      AAmzDate +C_LF+
-                     FormatDateTime(C_SHORT_DATE_FORMAT, ANowUtc) +'/'+ ARegion +'/'+ ServiceName +'/aws4_request' +C_LF+
+                     FormatDateTime(C_SHORT_DATE_FORMAT, Now) +'/'+ ARegion +'/'+ GetServiceName +'/aws4_request' +C_LF+
                      GetHashSHA256Hex(ACanonical);
-    ASignature := GenerateSignature(ANowUtc, AStringToSign, FSecretKey, ARegion, ServiceName);
+    ASignature := GenerateSignature(ANowUtc, AStringToSign, FSecretKey, ARegion, GetServiceName);
     AAuthHeader := C_HASH_ALGORITHM+' Credential='+FAccessKey+'/'+
-                   FormatDateTime(C_SHORT_DATE_FORMAT, ANowUtc)+'/'+
+                   FormatDateTime(C_SHORT_DATE_FORMAT, Now)+'/'+
                    ARegion+'/'+
-                   ServiceName+'/'+
+                   GetServiceName+'/'+
                    'aws4_request,SignedHeaders='+ADelimitedHeaders+',Signature='+ASignature;
 
     AHeaders.Values['Authorization'] := AAuthHeader;
@@ -267,16 +331,15 @@ begin
     if AVerb = C_HEAD then Result := AHttp.Head(AUrl, AHeaders);
     if AVerb = C_GET then Result := AHttp.Get(AUrl, AHeaders, AResponseStream);
     if AVerb = C_PUT then Result := AHttp.Put(AUrl, AContent, AHeaders, AResponseStream);
-    if AVerb = C_POST then Result := AHttp.Post(AUrl, APayload.DataString, AHeaders, AResponseStream);
+    if AVerb = C_POST then Result := AHttp.Post(AUrl, AContent, AHeaders, AResponseStream);
     if AVerb = C_DELETE then Result := AHttp.Delete(AUrl, AHeaders, AResponseStream);
   finally
     AHeaders.Free;
     AParams.Free;
-    APayload.Free;
   end;
 end;
 
-
+      {
 function TksAwsBaseService.ExecuteHttp(AVerb, AAction, AHost, APath, APayload: string; AExtraHeaders, AQueryParams: TStrings; const AUseRegion: Boolean = True; const AResponseStream: TStream = nil): IksAwsHttpResponse;
 var
   AContent: TStringStream;
@@ -287,6 +350,24 @@ begin
   finally
     AContent.Free;
   end;
-end;
+end;   }{
 
+function TksAwsBaseService.ExecuteHttp(AVerb, AAction, AHost, APath, AContent: string): IksAwsHttpResponse;
+var
+  AStrings: TStrings;
+  AStream: TMemoryStream;
+begin
+  AStrings := TStringList.Create;
+  AStream := TMemoryStream.Create;
+  try
+    AStrings.Text := Trim(AContent);
+    AStrings.SaveToStream(AStream);
+    AStream.Position := 0;
+    Result := ExecuteHttp(AVerb, AAction, AHost, APath, nil, nil, AStream);
+  finally
+    AStream.Free;
+    AStrings.Free;
+  end;
+end;
+        }
 end.

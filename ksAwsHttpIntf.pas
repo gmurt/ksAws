@@ -57,7 +57,8 @@ type
     function Head(AUrl: string; AHeaders: TStrings): IksAwsHttpResponse;
     function Get(AUrl: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
     function Put(AUrl: string; APayload: TStream; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
-    function Post(AUrl, APayload: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
+    function Post(AUrl, APayload: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse; overload;
+    function Post(AUrl: string; APayload: TStream; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse; overload;
     function Delete(AUrl: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
   end;
 

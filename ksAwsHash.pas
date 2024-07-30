@@ -28,6 +28,8 @@ interface
 
 {$I include.inc}
 
+{$DEFINE USE_INDY}
+
 uses Classes {$IFDEF USE_INDY} ,IdGlobal {$ENDIF};
 
   function URLEncode(AUrl: string): string;
@@ -42,8 +44,8 @@ uses Classes {$IFDEF USE_INDY} ,IdGlobal {$ENDIF};
   function CalculateHMACSHA256Hex(const AValue: string; const AKey: TIdBytes): string;
   function CalculateHMACSHA256(const AValue: string; const AKey: TIdBytes): TIdBytes;
   {$ELSE}
-  function CalculateHMACSHA256(const AValue: string; const AKey: TArray<Byte>): TArray<Byte>;
-  function CalculateHMACSHA256Hex(const AValue: string; const AKey: TArray<Byte>): string;
+  //function CalculateHMACSHA256(const AValue: string; const AKey: TArray<Byte>): TArray<Byte>;
+  //function CalculateHMACSHA256Hex(const AValue: string; const AKey: TArray<Byte>): string;
   {$ENDIF}
 
 implementation
@@ -53,7 +55,7 @@ uses ksAwsConst, SysUtils,
   {$IFDEF USE_INDY}
   IdHashSHA, IdHMAC, IdHMACSHA1, IdSSLOpenSSL, IdURI
   {$ELSE}
-  System.Hash, System.NetEncoding
+  //System.Hash, System.NetEncoding
   {$ENDIF}
   ;
 
@@ -115,6 +117,7 @@ begin
     ASha256 := TIdHashSHA256.Create;
     try
       Result := LowerCase(ASha256.HashStreamAsHex(AValue));
+      AValue.Position := 0;
     finally
       ASha256.Free;
     end;
@@ -147,7 +150,7 @@ begin
 end;
 
 {$ELSE}
-
+(*
 function ParamEncode(AParam: string): string;
 begin
   Result := TNetEncoding.URL.EncodeQuery(AParam,  [Ord('"'), Ord(''''), Ord(':'), Ord(';'), Ord('<'), Ord('='), Ord('>'),
@@ -179,6 +182,8 @@ function GetHashSHA256Hex(AValue: TStream): string;
 begin
   AValue.Position := 0;
   Result := THash.DigestAsString(THashSHA2.GetHashBytes(AValue));
+  // d87edfd94fa67f662d0ab370d515266f9e09185c69802b0554ba38f6918f48b2   incorrect
+  // 3db2ea30b6216ce51347664d96eeef1ffdc1a746b888bbf383d5f9b948c40072
 end;
 
 function CalculateHMACSHA256(const AValue: string; const AKey: TArray<Byte>): TArray<Byte>;
@@ -190,7 +195,7 @@ function CalculateHMACSHA256Hex(const AValue: string; const AKey: TArray<Byte>):
 begin
   Result := THash.DigestAsString(CalculateHMACSHA256(AValue, AKey));
 end;
-
+       *)
 {$ENDIF}
 
 initialization
