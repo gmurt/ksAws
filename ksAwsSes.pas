@@ -505,11 +505,6 @@ begin
 end;
 
 procedure TksAwsSES.SendEmailSmtp(AMessage: TIdMessage);
-const
-  //C_AMAZON_SMTP = ;
-  C_AMAZON_PORT = 465;
-  C_AMAZON_USER = 'AKIAILM5HVRNCLI75EDA';
-  C_AMAZON_PASS = 'AlefEyJqSU8HxVje/dNBFGxrpWSPVynZm/lKU3lF3iRH';
 var
   ASmtp: TIdSMTP;
   ASSl: TIdSSLIOHandlerSocketOpenSSL;
