@@ -509,7 +509,7 @@ var
   ASmtp: TIdSMTP;
   ASSl: TIdSSLIOHandlerSocketOpenSSL;
 begin
-  ASmtp := TIdSMTP.Create(nil);
+  {ASmtp := TIdSMTP.Create(nil);
   ASsl := TIdSSLIOHandlerSocketOpenSSL.Create(nil);
   try
     //AMessage.Sender.
@@ -531,7 +531,7 @@ begin
   finally
     ASmtp.Free;
     ASsl.Free;
-  end;
+  end; }
 end;
 
 procedure TksAwsSES.VerifyEmailIdentity(AEmailAddress: string);

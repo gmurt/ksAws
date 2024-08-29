@@ -68,11 +68,31 @@ type
     property Host: string read GetHost;
   end;
 
+  function StringToRegion(ARegionStr: string): TksAwsRegion;
+
 implementation
 
 {$I include.inc}
 
 uses ksAwsConst, ksAwsHash, SysUtils, DateUtils, IdGlobal;
+
+function StringToRegion(ARegionStr: string): TksAwsRegion;
+begin
+  ARegionStr := Trim(ARegionStr.ToLower);
+  if ARegionStr = C_RGN_EU_CENTRAL_1 then Result := awsEuCentral1;
+  if ARegionStr = C_RGN_EU_NORTH_1 then Result := awsEuNorth1;
+  if ARegionStr = C_RGN_EU_SOUTH_1 then Result := awsEuSouth1;
+  if ARegionStr = C_RGN_EU_WEST_1 then Result := awsEuWest1;
+
+  if ARegionStr = C_RGN_EU_WEST_2 then Result := awsEuWest2;
+  if ARegionStr = C_RGN_EU_WEST_3 then Result := awsEuWest3;
+  if ARegionStr = C_RGN_US_EAST_1 then Result := awsUsEast1;
+  if ARegionStr = C_RGN_US_EAST_2 then Result := awsUsEast2;
+  if ARegionStr = C_RGN_US_WEST_1 then Result := awsUsWest1;
+  if ARegionStr = C_RGN_US_WEST_2 then Result := awsUsWest2;
+end;
+
+
 
 { TksAwsBaseService }
 
@@ -169,7 +189,7 @@ procedure TksAwsBaseService.GetHeaders(ARequestTime: TDateTime; AHost: string; A
 begin
   AHeaders.Values['host'] := Trim(UrlEncode(AHost));
   AHeaders.Values['x-amz-content-sha256'] := GetHashSHA256Hex(APayload);
-  AHeaders.Values['x-amz-date'] := FormatDateTime(C_AMZ_DATE_FORMAT, TTimeZone.Local.ToUniversalTime(ARequestTime, True), TFormatSettings.Create('en-US'));
+  AHeaders.Values['x-amz-date'] := FormatDateTime(C_AMZ_DATE_FORMAT, ARequestTime, TFormatSettings.Create('en-US'));
   (AHeaders as TStringList).Sort;
 
 end;
@@ -288,7 +308,6 @@ begin
 
 
 
-    ANowUtc := TTimeZone.Local.ToUniversalTime(Now);
 
     if Pos('/', APath) <> 1 then
       APath := '/'+APath;
@@ -298,7 +317,8 @@ begin
     if AExtraHeaders <> nil then
       AHeaders.AddStrings(AExtraHeaders);
 
-    GetHeaders(Now, AHost, AContent, AHeaders);
+    ANowUtc := TTimeZone.Local.ToUniversalTime(Now);
+    GetHeaders(ANowUtc, AHost, AContent, AHeaders);
 
 
     ADelimitedHeaders := '';
@@ -314,11 +334,11 @@ begin
     ACanonical := GenerateCanonicalRequest(AVerb, AHost, APath, AContent, AHeaders, AParams);
     AStringToSign := C_HASH_ALGORITHM +C_LF +
                      AAmzDate +C_LF+
-                     FormatDateTime(C_SHORT_DATE_FORMAT, Now) +'/'+ ARegion +'/'+ GetServiceName +'/aws4_request' +C_LF+
+                     FormatDateTime(C_SHORT_DATE_FORMAT, ANowUtc) +'/'+ ARegion +'/'+ GetServiceName +'/aws4_request' +C_LF+
                      GetHashSHA256Hex(ACanonical);
     ASignature := GenerateSignature(ANowUtc, AStringToSign, FSecretKey, ARegion, GetServiceName);
     AAuthHeader := C_HASH_ALGORITHM+' Credential='+FAccessKey+'/'+
-                   FormatDateTime(C_SHORT_DATE_FORMAT, Now)+'/'+
+                   FormatDateTime(C_SHORT_DATE_FORMAT, ANowUtc)+'/'+
                    ARegion+'/'+
                    GetServiceName+'/'+
                    'aws4_request,SignedHeaders='+ADelimitedHeaders+',Signature='+ASignature;

@@ -67,7 +67,8 @@ type
     procedure PutObject(ABucketName, APath, AFilename: string; AOptions: TksS3PutOptions; const AExtraHeaders: TStrings = nil); overload;
   end;
 
-  function CreateAwsS3(AAccessKey, ASecretKey: string; ARegion: TksAwsRegion): IksAwsS3;
+  function CreateAwsS3(AAccessKey, ASecretKey: string; ARegion: TksAwsRegion): IksAwsS3; overload;
+  function CreateAwsS3(AAccessKey, ASecretKey: string; ARegion: string): IksAwsS3; overload;
 
 implementation
 
@@ -126,6 +127,11 @@ type
 function CreateAwsS3(AAccessKey, ASecretKey: string; ARegion: TksAwsRegion): IksAwsS3;
 begin
   Result := TksAwsS3.Create(AAccessKey, ASecretKey, ARegion);
+end;
+
+function CreateAwsS3(AAccessKey, ASecretKey: string; ARegion: string): IksAwsS3; overload;
+begin
+  Result := TksAwsS3.Create(AAccessKey, ASecretKey, StringToRegion(ARegion));
 end;
 
 { TksAwsS3Object }
