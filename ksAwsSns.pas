@@ -27,7 +27,7 @@ unit ksAwsSns;
 interface
 
 uses
-  Sysutils, Classes, ksAwsBase, System.Generics.Collections, Xml.XMLIntf;
+  Sysutils, Classes, ksAwsBase, System.Generics.Collections;
 
 type
   IksAwsSnsSubscription = interface
@@ -42,7 +42,7 @@ type
     procedure SetProtocol(const Value: string);
     procedure SetSubscriptionArn(const Value: string);
     procedure SetTopicArn(const Value: string);
-    procedure LoadFromXML(AXml: IXMLNode);
+    procedure LoadFromXML(AXml: string);
     property Endpoint: string read GetEndpoint write SetEndpoint;
     property Owner: string read GetOwner write SetOwner;
     property Protocol: string read GetProtocol write SetProtocol;
@@ -68,7 +68,7 @@ type
 
 implementation
 
-uses ksAwsConst, Xml.xmldom, Xml.XMLDoc, Math, ksAwsHash;
+uses ksAwsConst, Math, ksAwsHash, ksAwsXml;
 
 type
   TksAwsSnsSubscription = class(TInterfacedObject, IksAwsSnsSubscription)
@@ -89,7 +89,7 @@ type
     procedure SetSubscriptionArn(const Value: string);
     procedure SetTopicArn(const Value: string);
   protected
-    procedure LoadFromXML(AXml: IXMLNode);
+    procedure LoadFromXML(AXml: string);
     property Endpoint: string read GetEndpoint write SetEndpoint;
     property Owner: string read GetOwner write SetOwner;
     property Protocol: string read GetProtocol write SetProtocol;
@@ -125,7 +125,7 @@ begin
   AParams := TStringList.Create;
   try
     AParams.Values['Name'] := ATopicName;
-    ExecuteHttp(C_POST, 'CreateTopic', Host, '', '', nil, AParams).ContentAsString;
+    ExecuteHttp(C_POST, 'CreateTopic', Host, '', nil, AParams, '').ContentAsString;
   finally
     AParams.Free;
   end;
@@ -138,7 +138,7 @@ begin
   AParams := TStringList.Create;
   try
     AParams.Values['TopicArn'] := ATopicArn;
-    ExecuteHttp(C_GET, 'DeleteTopic', Host, '', '', nil, AParams).ContentAsString;
+    ExecuteHttp(C_GET, 'DeleteTopic', Host, '', nil, AParams, '').ContentAsString;
   finally
     AParams.Free;
   end;
@@ -162,38 +162,35 @@ end;
 
 procedure TksAwsSNS.ListSubscriptionsByTopic(ATopicArn: string; ASubscriptions: TksAwsSnsSubscriptionList);
 var
-  AResponse: string;
+  AResponse, AResult, ASubsXml, AMemberXml: string;
   AParams: TStrings;
-  AXml: IXmlDocument;
-  ANode: IXmlNode;
-  ICount: integer;
   ANextToken: string;
   AComplete: Boolean;
-  AMember: IXMLNode;
+  AOffset, ABlockEnd: integer;
 begin
   ASubscriptions.Clear;
   ANextToken := '';
   AComplete := False;
-  AXml := TXMLDocument.Create(nil);
   while not AComplete do
   begin
     AParams := TStringList.Create;
     try
-
       AParams.Values['TopicArn'] := ATopicArn;
       AParams.Values['NextToken'] :=  ANextToken;
-      AResponse := ExecuteHttp(C_GET, 'ListSubscriptions', Host, '', '', nil, AParams).ContentAsString;
+      AResponse := ExecuteHttp(C_GET, 'ListSubscriptions', Host, '', nil, AParams, '').ContentAsString;
     finally
       AParams.Free;
     end;
-    AXml.LoadFromXML(AResponse);
-    ANode := AXml.DocumentElement.ChildNodes['ListSubscriptionsResult'];
-    ANextToken :=   UrlEncode(ANode.ChildNodes['NextToken'].Text);
-    ANode := ANode.ChildNodes['Subscriptions'];
-    for ICount := 0 to ANode.ChildNodes.Count -1 do
+    AResult := GetXmlTagValue(AResponse, 'ListSubscriptionsResult');
+    ANextToken := UrlEncode(GetXmlTagValue(AResult, 'NextToken'));
+    ASubsXml := GetXmlTagValue(AResult, 'Subscriptions');
+    AOffset := 1;
+    while True do
     begin
-      AMember := ANode.ChildNodes[ICount];
-      ASubscriptions.AddSubscription.LoadFromXML(AMember);
+      AMemberXml := GetXmlBlock(ASubsXml, 'member', AOffset, ABlockEnd);
+      if ABlockEnd = 0 then Break;
+      ASubscriptions.AddSubscription.LoadFromXML(AMemberXml);
+      AOffset := ABlockEnd;
     end;
     AComplete := (ANextToken = '') ;
   end;
@@ -201,19 +198,15 @@ end;
 
 procedure TksAwsSNS.ListTopics(ATopics: TStrings; const AMaxItems: integer = 0);
 var
-  AResponse: string;
+  AResponse, AResult, ATopicsXml, AMemberXml, ATopicArn: string;
   AParams: TStrings;
-  AXml: IXmlDocument;
-  ANode: IXmlNode;
-  ICount: integer;
   ANextToken: string;
   AComplete: Boolean;
-  ATopic: IXMLNode;
+  AOffset, ABlockEnd: integer;
 begin
   ATopics.Clear;
   ANextToken := '';
   AComplete := False;
-  AXml := TXMLDocument.Create(nil);
   while not AComplete do
   begin
     AParams := TStringList.Create;
@@ -221,21 +214,22 @@ begin
       if AMaxItems > 0 then
         AParams.Values['MaxItems'] := IntToStr(Min(AMaxItems, 100));
       AParams.Values['NextToken'] :=  ANextToken;
-      AResponse := ExecuteHttp(C_GET, 'ListTopics', Host, '', '', nil, AParams).ContentAsString;
+      AResponse := ExecuteHttp(C_GET, 'ListTopics', Host, '', nil, AParams, '').ContentAsString;
     finally
       AParams.Free;
     end;
-    AXml.LoadFromXML(AResponse);
-    ANode := AXml.DocumentElement.ChildNodes['ListTopicsResult'];
-    ANextToken :=   UrlEncode(ANode.ChildNodes['NextToken'].Text);
-    ANode := ANode.ChildNodes['Topics'];
-    for ICount := 0 to ANode.ChildNodes.Count -1 do
+    AResult := GetXmlTagValue(AResponse, 'ListTopicsResult');
+    ANextToken := UrlEncode(GetXmlTagValue(AResult, 'NextToken'));
+    ATopicsXml := GetXmlTagValue(AResult, 'Topics');
+    AOffset := 1;
+    while True do
     begin
-      ATopic := ANode.ChildNodes[ICount];
+      AMemberXml := GetXmlBlock(ATopicsXml, 'member', AOffset, ABlockEnd);
+      if ABlockEnd = 0 then Break;
+      ATopicArn := GetXmlTagValue(AMemberXml, 'TopicArn');
       if (AMaxItems = 0) or (ATopics.Count < AMaxItems) then
-      begin
-        ATopics.Add(ATopic.ChildNodes['TopicArn'].Text);
-      end;
+        ATopics.Add(ATopicArn);
+      AOffset := ABlockEnd;
     end;
     AComplete := (ANextToken = '') or (ATopics.Count >= AMaxItems);
   end;
@@ -268,13 +262,13 @@ begin
   Result := FTopicArn;
 end;
 
-procedure TksAwsSnsSubscription.LoadFromXML(AXml: IXMLNode);
+procedure TksAwsSnsSubscription.LoadFromXML(AXml: string);
 begin
-  FEndpoint := AXml.ChildNodes['Endpoint'].Text;
-  FOwner := AXml.ChildNodes['Owner'].Text;
-  FProtocol := AXml.ChildNodes['Protocol'].Text;
-  FSubscriptionArn := AXml.ChildNodes['SubscriptionArn'].Text;
-  FTopicArn := AXml.ChildNodes['TopicArn'].Text;
+  FEndpoint := GetXmlTagValue(AXml, 'Endpoint');
+  FOwner := GetXmlTagValue(AXml, 'Owner');
+  FProtocol := GetXmlTagValue(AXml, 'Protocol');
+  FSubscriptionArn := GetXmlTagValue(AXml, 'SubscriptionArn');
+  FTopicArn := GetXmlTagValue(AXml, 'TopicArn');
 end;
 
 procedure TksAwsSnsSubscription.SetEndpoint(const Value: string);

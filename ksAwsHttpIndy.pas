@@ -47,7 +47,8 @@ type
     function Head(AUrl: string; AHeaders: TStrings): IksAwsHttpResponse;
     function Get(AUrl: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
     function Put(AUrl: string; APayload: TStream; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
-    function Post(AUrl, APayload: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
+    function Post(AUrl, APayload: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse; overload;
+    function Post(AUrl: string; APayload: TStream; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse; overload;
     function Delete(AUrl: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
   end;
 
@@ -110,7 +111,7 @@ begin
     Result.ContentStream := AStream;
   finally
     AHttp.Free;
-    AStream.Free
+    AStream.Free;
   end;
 end;
 
@@ -149,6 +150,29 @@ begin
   finally
     AHttp.Free;
     AContentStream.Free;
+    AResponse.Free;
+  end;
+end;
+
+function TksAwsIndyHttp.Post(AUrl: string; APayload: TStream; AHeaders: TStrings;
+  const AResponseStream: TStream = nil): IksAwsHttpResponse;
+var
+  AHttp: TIdHttp;
+  AResponse: TStringStream;
+begin
+  AHttp := CreateHttp(AHeaders);
+  AResponse := TStringStream.Create;
+  try
+    APayload.Position := 0;
+    AHttp.Post(AUrl, APayload, AResponse);
+    if AResponseStream <> nil then
+    begin
+      AResponse.Position := 0;
+      AResponseStream.CopyFrom(AResponse, AResponse.Size);
+    end;
+    Result := ResponseToKsResponse(AHttp.Response);
+  finally
+    AHttp.Free;
     AResponse.Free;
   end;
 end;

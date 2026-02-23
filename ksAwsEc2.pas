@@ -57,16 +57,16 @@ type
 
 implementation
 
-uses ksAwsHttpIntf, ksAwsConst, Xml.xmldom, Xml.XMLIntf, Xml.XMLDoc;
+uses ksAwsHttpIntf, ksAwsConst, ksAwsXml;
 
 type
   TksAwsEC2Instance = class(TInterfacedObject, IksAwsEC2Instance)
   private
-    FXml: IXmlDocument;
+    FId: string;
+    FStatus: string;
     FTags: TStrings;
     function GetName: string;
     function GetStatus: string;
-    procedure LoadTags;
     function GetID: string;
   protected
     property ID: string read GetID;
@@ -96,11 +96,24 @@ end;
 { TksAwsEC2Instance }
 
 constructor TksAwsEC2Instance.Create(AXml: string);
+var
+  ATagSet, ABlock, AKey, AValue: string;
+  AOffset, ABlockEnd: integer;
 begin
   FTags := TStringList.Create;
-  FXml := TXmlDocument.Create(nil);
-  FXml.LoadFromXML(AXml);
-  LoadTags;
+  FId := GetXmlTagValue(AXml, 'instanceId');
+  FStatus := GetXmlTagValue(GetXmlTagValue(AXml, 'instanceState'), 'name');
+  ATagSet := GetXmlTagValue(AXml, 'tagSet');
+  AOffset := 1;
+  while True do
+  begin
+    ABlock := GetXmlBlock(ATagSet, 'item', AOffset, ABlockEnd);
+    if ABlockEnd = 0 then Break;
+    AKey := GetXmlTagValue(ABlock, 'key');
+    AValue := GetXmlTagValue(ABlock, 'value');
+    FTags.Values[AKey] := AValue;
+    AOffset := ABlockEnd;
+  end;
 end;
 
 destructor TksAwsEC2Instance.Destroy;
@@ -111,7 +124,7 @@ end;
 
 function TksAwsEC2Instance.GetID: string;
 begin
-  Result := FXml.ChildNodes['item'].ChildNodes['instanceId'].Text;
+  Result := FId;
 end;
 
 function TksAwsEC2Instance.GetName: string;
@@ -121,22 +134,7 @@ end;
 
 function TksAwsEC2Instance.GetStatus: string;
 begin
-  Result := FXml.ChildNodes['item'].ChildNodes['instanceState'].ChildNodes['name'].Text;
-end;
-
-procedure TksAwsEC2Instance.LoadTags;
-var
-  ICount: integer;
-  ANode: IXMLNode;
-  AKey: IXMLNode;
-begin
-  FTags.Clear;
-  ANode := FXml.ChildNodes['item'].ChildNodes['tagSet'];
-  for ICount := 0 to ANode.ChildNodes.Count-1 do
-  begin
-    AKey := ANode.ChildNodes[ICount];
-    FTags.Values[AKey.ChildNodes['key'].Text] := AKey.ChildNodes['value'].Text;
-  end;
+  Result := FStatus;
 end;
 
 { TksAwsEC2InstanceList }
@@ -147,28 +145,33 @@ var
 begin
   AInstance := TksAwsEc2Instance.Create(AXml);
   Add(AInstance);
-  AInstance.ID;
-  AInstance.Status;
 end;
 
 { TksAwsEC2 }
 
 procedure TksAwsEC2.ListInstances(AInstances: TksAwsEc2InstanceList);
 var
-  AXml: IXMLDocument;
-  AResponse: IXMLNode;
-  AItems: IXMLNode;
-  AItem: IXMLNode;
-  ICount: integer;
+  AXmlStr, AReservationSet, AReservation, AInstancesSet, AInstanceXml: string;
+  AOffset, ABlockEnd, AOffset2, ABlockEnd2: integer;
 begin
   AInstances.Clear;
-  AXml := ExecuteHttpXml(C_GET, 'DescribeInstances', Host, '', '', nil, nil, True, nil);
-  AResponse := AXml.ChildNodes['DescribeInstancesResponse'];
-  AItems := AResponse.ChildNodes['reservationSet'];
-  for ICount := 0 to AItems.ChildNodes.Count-1 do
+  AXmlStr := ExecuteHttp(C_GET, 'DescribeInstances', Host, '', nil, nil, '', True, nil).ContentAsString;
+  AReservationSet := GetXmlTagValue(AXmlStr, 'reservationSet');
+  AOffset := 1;
+  while True do
   begin
-    AItem := AItems.ChildNodes[ICount].ChildNodes['instancesSet'].ChildNodes['item'];
-    AInstances.AddInstanceXml(AItem.XML);
+    AReservation := GetXmlBlock(AReservationSet, 'item', AOffset, ABlockEnd);
+    if ABlockEnd = 0 then Break;
+    AInstancesSet := GetXmlTagValue(AReservation, 'instancesSet');
+    AOffset2 := 1;
+    while True do
+    begin
+      AInstanceXml := GetXmlBlock(AInstancesSet, 'item', AOffset2, ABlockEnd2);
+      if ABlockEnd2 = 0 then Break;
+      AInstances.AddInstanceXml('<item>' + AInstanceXml + '</item>');
+      AOffset2 := ABlockEnd2;
+    end;
+    AOffset := ABlockEnd;
   end;
 end;
 
@@ -181,7 +184,7 @@ begin
   try
     for ICount := Low(AInstanceIDs) to High(AInstanceIDs) do
       AParams.Values['InstanceId.'+IntToStr(ICount+1)] := AInstanceIDs[ICount];
-    ExecuteHttpXml(C_GET, 'StartInstances', Host, '', '', nil, AParams, True, nil);
+    ExecuteHttp(C_GET, 'StartInstances', Host, '', nil, AParams, '', True, nil);
   finally
     AParams.Free;
   end;
@@ -196,7 +199,7 @@ begin
   try
     for ICount := Low(AInstanceIDs) to High(AInstanceIDs) do
       AParams.Values['InstanceId.'+IntToStr(ICount+1)] := AInstanceIDs[ICount];
-    ExecuteHttpXml(C_GET, 'StopInstances', Host, '', '', nil, AParams, True, nil);
+    ExecuteHttp(C_GET, 'StopInstances', Host, '', nil, AParams, '', True, nil);
   finally
     AParams.Free;
   end;

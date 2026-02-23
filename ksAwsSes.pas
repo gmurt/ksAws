@@ -27,7 +27,7 @@ unit ksAwsSes;
 interface
 
 uses
-  Sysutils, Classes, ksAwsBase, IdMessage;
+  Sysutils, Classes, ksAwsBase;
 
 type
   TEmailIdentity = record
@@ -43,12 +43,14 @@ type
     function GetBcc: TStrings;
     function GetBody: string;
     function GetCc: TStrings;
+    function GetHtml: string;
     function GetRecipients: TStrings;
     function GetReplyTo: TStrings;
     function GetSender: string;
     function GetSubject: string;
     function GetReturnPath: string;
     procedure SetBody(const Value: string);
+    procedure SetHtml(const Value: string);
     procedure SetSender(const Value: string);
     procedure SetSubject(const Value: string);
     procedure SetReturnPath(const Value: string);
@@ -60,7 +62,7 @@ type
     property Bcc: TStrings read GetBcc;
     property Subject: string read GetSubject write SetSubject;
     property Body: string read GetBody write SetBody;
-
+    property Html: string read GetHtml write SetHtml;
   end;
 
   IksAwsSES = interface
@@ -72,11 +74,10 @@ type
     procedure DeleteVerificationTemplate(ATemplateName: string);
     procedure SendVerificationTemplate(ATemplateName, ARecipient: string);
 
-    procedure GetSenders(ASenders: TStrings; const ALimit: integer = 0);
+    procedure GetSenders(ASenders: TStrings; const AMaxItems: integer = 0);
 
     procedure DeleteIdentity(AIdentity: string);
     function SendEmail(AMessage: IksAwsSesMessage): integer;
-    procedure SendEmailSmtp(AMsg: TIdMessage);
     procedure VerifyEmailIdentity(AEmailAddress: string);
   end;
 
@@ -87,8 +88,7 @@ type
 
 implementation
 
-uses ksAwsConst, Xml.xmldom, Xml.XMLIntf, Xml.XMLDoc, Math, ksAwsHash, JsonDataObjects,
-  IdSmtp,  IdSSL, IdSSLOpenSSL, IdExplicitTLSClientServerBase;
+uses ksAwsConst, Math, ksAwsHash, JsonDataObjects, ksAwsXml;
 
 type
   TksAwsSesMessage = class(TInterfacedObject, IksAwsSesMessage)
@@ -131,26 +131,18 @@ type
   end;
 
   TksAwsSES = class(TksAwsBaseService, IksAwsSES)
-  private
-    //function BuildDestinationParams(AName: string; ARecipients, AParams: TStrings): string;
-    { Private declarations }
   protected
     function GetServiceName: string; override;
     function GetHostSubdomain: string; override;
     function GetVerificationStatus(AEmail: string): string; overload;
     function ListEmailIdentities: TEmailIdentities;
-
     procedure CreateVerificationTemplate(ATemplateName, AFromEmail, ASubject, ABody: string);
     procedure DeleteVerificationTemplate(ATemplateName: string);
     procedure SendVerificationTemplate(ATemplateName, ARecipient: string);
     procedure DeleteIdentity(AIdentity: string);
     procedure GetSenders(ASenders: TStrings; const AMaxItems: integer = 0);
     function SendEmail(AMessage: IksAwsSesMessage): integer;
-    procedure SendEmailSmtp(AMessage: TIdMessage);
     procedure VerifyEmailIdentity(AEmailAddress: string);
-
-  public
-    { Public declarations }
   end;
 
 
@@ -332,18 +324,6 @@ begin
   end;
 end;
 
-{function TksAwsSES.BuildDestinationParams(AName: string; ARecipients, AParams: TStrings): string;
-var
-  ICount: integer;
-  AKey: string;
-begin
-  if LowerCase(AName) = 'to' then AKey := 'ToAddresses';
-  if LowerCase(AName) = 'cc' then AKey := 'CcAddresses';
-  if LowerCase(AName) = 'bcc' then AKey := 'BccAddresses';
-  for ICount := 1 to ARecipients.Count do
-    AParams.Values['Destination.'+AKey+'.member.'+IntToStr(ICount)] := ARecipients[ICount-1];
-end;}
-
 function TksAwsSES.GetHostSubdomain: string;
 begin
   Result := 'email';
@@ -351,18 +331,15 @@ end;
 
 procedure TksAwsSES.GetSenders(ASenders: TStrings; const AMaxItems: integer = 0);
 var
-  AResponse: string;
+  AResponse, AResult, AIdentitiesXml, AMemberXml: string;
   AParams: TStrings;
-  AXml: IXmlDocument;
-  AIdentities: IXmlNode;
-  ICount: integer;
   ANextToken: string;
   AComplete: Boolean;
+  AOffset, ABlockEnd: integer;
 begin
   ASenders.Clear;
   ANextToken := '';
   AComplete := False;
-  AXml := TXMLDocument.Create(nil);
   while not AComplete do
   begin
     AParams := TStringList.Create;
@@ -370,25 +347,27 @@ begin
       AParams.Values['IdentityType'] := 'EmailAddress';
       if AMaxItems > 0 then
         AParams.Values['MaxItems'] := IntToStr(Min(AMaxItems, 1000));
-      AParams.Values['NextToken'] :=  ANextToken;
+      if ANextToken <> '' then
+        AParams.Values['NextToken'] := ANextToken;
       AResponse := ExecuteHttp('POST', 'ListIdentities', Host, '', nil, AParams, '').ContentAsString;
     finally
       AParams.Free;
     end;
-    AXml.LoadFromXML(AResponse);
-    AIdentities := AXml.DocumentElement.ChildNodes['ListIdentitiesResult'];
-    ANextToken :=   UrlEncode(AIdentities.ChildNodes['NextToken'].Text);
-    AIdentities := AIdentities.ChildNodes['Identities'];
-    for ICount := 0 to AIdentities.ChildNodes.Count -1 do
+    AResult := GetXmlTagValue(AResponse, 'ListIdentitiesResult');
+    ANextToken := GetXmlTagValue(AResult, 'NextToken');
+    AIdentitiesXml := GetXmlTagValue(AResult, 'Identities');
+    AOffset := 1;
+    while True do
     begin
+      AMemberXml := GetXmlBlock(AIdentitiesXml, 'member', AOffset, ABlockEnd);
+      if ABlockEnd = 0 then Break;
       if (AMaxItems = 0) or (ASenders.Count < AMaxItems) then
-      begin
-          ASenders.Add(AIdentities.ChildNodes[ICount].Text);
-      end;
+        ASenders.Add(AMemberXml);
+      AOffset := ABlockEnd;
     end;
-    AComplete := (ANextToken = '') or (ASenders.Count = AMaxItems);
+    AComplete := (ANextToken = '') or ((AMaxItems > 0) and (ASenders.Count >= AMaxItems));
     if not AComplete then
-      Sleep(1000); // rate limit for AWS (no more than 1 call per second);
+      Sleep(1000);
   end;
 end;
 
@@ -399,33 +378,26 @@ end;
 
 function TksAwsSES.GetVerificationStatus(AEmail: string): string;
 var
-  AResponse: string;
+  AResponse, AResultXml, AAttrsXml, AEntryXml, AValueXml: string;
   AParams: TStrings;
-  ICount: integer;
-  AStrings: TStrings;
-  AStr: string;
+  ABlockEnd: integer;
 begin
   Result := '';
-  AStrings := TStringList.Create;
   AParams := TStringList.Create;
   try
-    AParams.Values['Identities.member.'+IntToStr(1)] := AEmail;
+    AParams.Values['Identities.member.1'] := AEmail;
     AResponse := ExecuteHttp('POST', 'GetIdentityVerificationAttributes', Host, '', nil, AParams, '').ContentAsString;
-    AStrings.Text := AResponse;
-    for ICount := 0 to AStrings.Count-1 do
-    begin
-      AStr := Trim(AStrings[ICount]).ToLower;
-      if Pos('<verificationstatus>', AStr) > 0 then
-      begin
-        AStr := StringReplace(AStr, '<verificationstatus>', '', []);
-        AStr := StringReplace(AStr, '</verificationstatus>', '', []);
-        Result := AStr;
-        Exit;
-      end;
-    end;
   finally
     AParams.Free;
-    AStrings.Free;
+  end;
+  AResultXml := GetXmlTagValue(AResponse, 'GetIdentityVerificationAttributesResult');
+  AAttrsXml := GetXmlTagValue(AResultXml, 'VerificationAttributes');
+  AEntryXml := GetXmlBlock(AAttrsXml, 'entry', 1, ABlockEnd);
+  if ABlockEnd > 0 then
+  begin
+    AValueXml := GetXmlTagValue(AEntryXml, 'value');
+    if AValueXml <> '' then
+      Result := GetXmlTagValue(AValueXml, 'VerificationStatus');
   end;
 end;
 
@@ -446,13 +418,14 @@ begin
     AParams.Values['PageSize'] := '1000';
     ANextToken := '';
     repeat
+      if ANextToken <> '' then
+        AParams.Values['NextToken'] := ANextToken;
       AData := ExecuteHttp('GET', 'ListEmailIdentities', Host, '/v2/email/identities', nil, AParams, '').ContentAsString;
 
       AJson.FromJSON(AData);
 
       for AObj in AJson.A['EmailIdentities'] do
       begin
-
         if AObj.B['SendingEnabled'] then
         begin
           AIdentity.Identity := AObj.S['IdentityName'];
@@ -460,9 +433,9 @@ begin
           AIdentity.Verified := AObj.B['SendingEnabled'];
           Result := Result + [AIdentity];
         end;
-        //  AResult.Add(AIdentity.S['IdentityName']);
       end;
 
+      ANextToken := '';
       if not AJson.IsNull('NextToken') then
         ANextToken := AJson.S['NextToken'];
     until ANextToken = '';
@@ -472,17 +445,27 @@ begin
   end;
 end;
 
-function  TksAwsSES.SendEmail(AMessage: IksAwsSesMessage): integer;
+function TksAwsSES.SendEmail(AMessage: IksAwsSesMessage): integer;
 var
   AJson: TJsonObject;
   AAddr: string;
 begin
   AJson := TJsonObject.Create;
   try
-    AJson.O['Content'].O['Simple'].O['Body'].O['Html'].S['Charset'] := 'UTF-8';
-    AJson.O['Content'].O['Simple'].O['Body'].O['Html'].S['Data'] := AMessage.Body;
     AJson.O['Content'].O['Simple'].O['Subject'].S['Charset'] := 'UTF-8';
     AJson.O['Content'].O['Simple'].O['Subject'].S['Data'] := AMessage.Subject;
+
+    if AMessage.Body <> '' then
+    begin
+      AJson.O['Content'].O['Simple'].O['Body'].O['Text'].S['Charset'] := 'UTF-8';
+      AJson.O['Content'].O['Simple'].O['Body'].O['Text'].S['Data'] := AMessage.Body;
+    end;
+
+    if AMessage.Html <> '' then
+    begin
+      AJson.O['Content'].O['Simple'].O['Body'].O['Html'].S['Charset'] := 'UTF-8';
+      AJson.O['Content'].O['Simple'].O['Body'].O['Html'].S['Data'] := AMessage.Html;
+    end;
 
     for AAddr in AMessage.Recipients do
       AJson.O['Destination'].A['ToAddresses'].Add(AAddr);
@@ -498,51 +481,23 @@ begin
     for AAddr in AMessage.ReplyTo do
       AJson.A['ReplyToAddresses'].Add(AAddr);
 
-    Result := ExecuteHttp('POST', 'SendEmail', Host, '/v2/email/outbound-emails',  nil, nil, AJson.ToString).StatusCode;
+    if AMessage.ReturnPath <> '' then
+      AJson.S['FeedbackForwardingEmailAddress'] := AMessage.ReturnPath;
+
+    Result := ExecuteHttp('POST', 'SendEmail', Host, '/v2/email/outbound-emails', nil, nil, AJson.ToString).StatusCode;
   finally
     AJson.Free;
   end;
 end;
 
-procedure TksAwsSES.SendEmailSmtp(AMessage: TIdMessage);
-var
-  ASmtp: TIdSMTP;
-  ASSl: TIdSSLIOHandlerSocketOpenSSL;
-begin
-  {ASmtp := TIdSMTP.Create(nil);
-  ASsl := TIdSSLIOHandlerSocketOpenSSL.Create(nil);
-  try
-    //AMessage.Sender.
-    ASmtp.Host := 'email-smtp.'+RegionStr+'.amazonaws.com';
-    ASmtp.Port := C_AMAZON_PORT;
-    ASmtp.Username := C_AMAZON_USER;
-    ASmtp.Password := C_AMAZON_PASS;
-    ASmtp.IOHandler := ASsl;
-    ASmtp.UseTLS := utUseExplicitTLS;
-    ASsl.SSLOptions.Method := TIdSSLVersion.sslvTLSv1_2;
-    ASsl.SSLOptions.SSLVersions := [sslvTLSv1,sslvTLSv1_1,sslvTLSv1_2];
-    ASmtp.Connect;
-    try
-      ASmtp.Send(AMessage);
-    finally
-      ASmtp.Disconnect;
-    end;
-
-  finally
-    ASmtp.Free;
-    ASsl.Free;
-  end; }
-end;
-
 procedure TksAwsSES.VerifyEmailIdentity(AEmailAddress: string);
 var
-  AResponse: string;
   AParams: TStrings;
 begin
   AParams := TStringList.Create;
   try
     AParams.Values['EmailAddress'] := AEmailAddress;
-    AResponse := ExecuteHttp('POST', 'VerifyEmailIdentity', Host, '', nil, AParams, '').ContentAsString;
+    ExecuteHttp('POST', 'VerifyEmailIdentity', Host, '', nil, AParams, '');
   finally
     AParams.Free;
   end;

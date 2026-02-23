@@ -73,7 +73,7 @@ type
 implementation
 
 uses ksAwsConst, SysUtils, System.DateUtils, HttpApp,
-  Xml.xmldom, Xml.XMLIntf, Xml.XMLDoc, ksAwsHash, ksAwsHttpIntf;
+  ksAwsHash, ksAwsHttpIntf, ksAwsXml;
 
 type
   TksAwsS3Object = class(TInterfacedObject, IksAwsS3Object)
@@ -263,19 +263,21 @@ end;
 procedure TksAwsS3.GetBucket(ABucketName: string;
                              AStrings: TStrings);
 var
-  AXml: IXMLDocument;
-  AContents: IXMLNode;
-  ICount: integer;
-  AObject: IXMLNode;
+  AResponse, AResult, ABlock, AKey: string;
+  AOffset, ABlockEnd: integer;
 begin
   AStrings.Clear;
-  AXml := ExecuteHttpXml(C_GET, '', ABucketName+'.'+Host, '/', '', nil, nil);
-  AContents := AXml.ChildNodes['ListBucketResult'];
-  for ICount := 0 to AContents.ChildNodes.Count-1 do
+  AResponse := ExecuteHttp(C_GET, '', ABucketName+'.'+Host, '/', nil, nil, '').ContentAsString;
+  AResult := GetXmlTagValue(AResponse, 'ListBucketResult');
+  AOffset := 1;
+  while True do
   begin
-    AObject := AContents.ChildNodes[ICount];
-    if AObject.NodeName = 'Contents' then
-      AStrings.Add(AObject.ChildValues['Key']);
+    ABlock := GetXmlBlock(AResult, 'Contents', AOffset, ABlockEnd);
+    if ABlockEnd = 0 then Break;
+    AKey := GetXmlTagValue(ABlock, 'Key');
+    if AKey <> '' then
+      AStrings.Add(AKey);
+    AOffset := ABlockEnd;
   end;
 end;
 
@@ -289,25 +291,26 @@ end;
 
 procedure TksAwsS3.GetBuckets(AStrings: TStrings);
 var
-  AXml: IXMLDocument;
-  ABuckets: IXMLNode;
-  ABucket: IXMLNode;
-  ICount: integer;
+  AResponse, ABucketsXml, ABucketXml, AName: string;
+  AOffset, ABlockEnd: integer;
 begin
-  AXml := ExecuteHttpXml(C_GET, '', Host, '', '', nil, nil);
-  ABuckets := AXml.ChildNodes['ListAllMyBucketsResult'];
-  ABuckets := ABuckets.ChildNodes['Buckets'];
-  for ICount := 0 to ABuckets.ChildNodes.Count-1 do
+  AResponse := ExecuteHttp(C_GET, '', Host, '', nil, nil, '').ContentAsString;
+  ABucketsXml := GetXmlTagValue(GetXmlTagValue(AResponse, 'ListAllMyBucketsResult'), 'Buckets');
+  AOffset := 1;
+  while True do
   begin
-    ABucket := ABuckets.ChildNodes[ICount];
-    AStrings.Add(ABucket.ChildNodes['Name'].Text);
+    ABucketXml := GetXmlBlock(ABucketsXml, 'Bucket', AOffset, ABlockEnd);
+    if ABlockEnd = 0 then Break;
+    AName := GetXmlTagValue(ABucketXml, 'Name');
+    if AName <> '' then
+      AStrings.Add(AName);
+    AOffset := ABlockEnd;
   end;
 end;
 
 function TksAwsS3.GetObject(ABucketName, AObjectName: string): IksAwsS3Object;
 var
   AResponse: IksAwsHttpResponse;
-  AFilename: string;
   AParams: TStrings;
   AStream: TStream;
 begin
@@ -315,14 +318,10 @@ begin
   AStream := TMemoryStream.Create;
   try
     AResponse := ExecuteHttp(C_GET, '', ABucketName+'.'+Host, AObjectName, nil, AParams, '', True, AStream);
-  AFilename := AObjectName;
-  while Pos('/', AFilename) > 0 do
-    AFilename := Copy(AFilename, Pos('/', AFilename)+1, Length(AFilename));
-
-  Result := TksAwsS3Object.Create(AObjectName,
-                                  AResponse.ETag,
-                                  AResponse.LastModified,
-                                  AStream);
+    Result := TksAwsS3Object.Create(AObjectName,
+                                    AResponse.ETag,
+                                    AResponse.LastModified,
+                                    AStream);
   finally
     AParams.Free;
     AStream.Free;

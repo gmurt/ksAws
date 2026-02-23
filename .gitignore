@@ -78,3 +78,4 @@ Examples/S3/ListBuckets/ListBuckets.res
 Examples/SES/VerifiedSenders/VerifiedSenders.res
 Examples/RDS/List Instances/_credentials.inc
 Examples/RDS/List Instances/ListInstances.res
+Examples/SES/VerifiedSenders/credentials.inc

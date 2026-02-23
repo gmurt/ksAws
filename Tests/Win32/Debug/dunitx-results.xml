@@ -1,0 +1,259 @@
+﻿<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<test-results name="C:\Source\ksAws\Tests\Win32\Debug\ksAwsTests.exe" total="119" errors="0" failures="0" ignored="0" inconclusive="0" not-run="0" skipped="0" invalid="0" date="2026-02-23" time="11:14:40">
+  <culture-info current-culture="en" current-uiculture="en" />
+  <test-suite type="Assembly" name="ksAwsTests.exe" executed="true" result="Success" success="True" time="11:14:40" asserts="0">
+    <results>
+        <test-suite type="Namespace" name="TestksAwsBase" executed="true" result="Success" success="True" time="8.632" asserts="0" >
+          <results>
+              <test-suite type="Fixture" name="TTestAuthHeaderFormat" executed="True" result="Success" success="True" time="0.012" >
+                <results>
+                  <test-case name="TestAuthHeader_ContainsAlgorithm" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestAuthHeader_ContainsCredential" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestAuthHeader_ContainsSignedHeaders" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestAuthHeader_ContainsSignature" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestAuthHeader_SpaceAfterCommas" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                </results>
+              </test-suite>
+              <test-suite type="Fixture" name="TTestBaseServiceProperties" executed="True" result="Success" success="True" time="0.020" >
+                <results>
+                  <test-case name="TestRegionStr_EuWest2" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestRegionStr_UsEast1" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestAccessKey" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestSecretKey" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestHost" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestServiceName" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                </results>
+              </test-suite>
+              <test-suite type="Fixture" name="TTestCanonicalRequest" executed="True" result="Success" success="True" time="0.033" >
+                <results>
+                  <test-case name="TestGetRequest_EmptyPayload" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestGetRequest_WithQueryParams" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestPostRequest_WithPayload" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestCanonical_HeadersAreSorted" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestCanonical_HeaderNamesLowerCased" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestCanonical_QueryParamsSorted" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestCanonical_VerbNotEncoded" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestCanonical_PayloadHashIncluded" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                </results>
+              </test-suite>
+              <test-suite type="Fixture" name="TTestStringToRegion" executed="True" result="Success" success="True" time="8.567" >
+                <results>
+                  <test-case name="TestEuWest1" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestEuWest2" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestEuWest3" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestEuCentral1" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestEuNorth1" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestEuSouth1" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestUsEast1" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestUsEast2" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestUsWest1" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestUsWest2" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestUpperCaseInput" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestMixedCaseInput" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestWhitespaceInput" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestInvalidRegion" executed="True" result="Success" success="True" time="5.919" asserts="0" />
+                </results>
+              </test-suite>
+          </results>
+        </test-suite>
+        <test-suite type="Namespace" name="TestksAwsEc2" executed="true" result="Success" success="True" time="0.010" asserts="0" >
+          <results>
+              <test-suite type="Fixture" name="TTestEC2Factory" executed="True" result="Success" success="True" time="0.002" >
+                <results>
+                  <test-case name="TestCreateAwsEc2_ReturnsValidInterface" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestInstanceList_Create" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                </results>
+              </test-suite>
+              <test-suite type="Fixture" name="TTestEC2InstanceList" executed="True" result="Success" success="True" time="0.003" >
+                <results>
+                  <test-case name="TestAddInstanceXml_IncreasesCount" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestAddMultipleInstances" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestClearList" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                </results>
+              </test-suite>
+              <test-suite type="Fixture" name="TTestEC2InstanceXmlParsing" executed="True" result="Success" success="True" time="0.005" >
+                <results>
+                  <test-case name="TestParseInstanceId" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestParseInstanceStatus" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestParseNameTag" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestParseMissingNameTag" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestParseMultipleTags" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                </results>
+              </test-suite>
+          </results>
+        </test-suite>
+        <test-suite type="Namespace" name="TestksAwsHash" executed="true" result="Success" success="True" time="0.016" asserts="0" >
+          <results>
+              <test-suite type="Fixture" name="TTestGenerateSignature" executed="True" result="Success" success="True" time="0.002" >
+                <results>
+                  <test-case name="TestSignature_AwsReferenceVector" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                </results>
+              </test-suite>
+              <test-suite type="Fixture" name="TTestHMACSHA256" executed="True" result="Success" success="True" time="0.002" >
+                <results>
+                  <test-case name="TestCalculateHMACSHA256_KnownVector" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestCalculateHMACSHA256Hex_ReturnsHex" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                </results>
+              </test-suite>
+              <test-suite type="Fixture" name="TTestHashFunctions" executed="True" result="Success" success="True" time="0.005" >
+                <results>
+                  <test-case name="TestSHA256_EmptyString" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestSHA256_SimpleString" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestSHA256_EmptyStream" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestSHA256_StreamContent" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestSHA256_StreamPositionResetAfterHash" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                </results>
+              </test-suite>
+              <test-suite type="Fixture" name="TTestUrlEncoding" executed="True" result="Success" success="True" time="0.007" >
+                <results>
+                  <test-case name="TestUrlEncode_PlainString" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestUrlEncode_WithSpaces" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestParamEncode_PlainString" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestParamEncode_WithSpaces" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestParamEncode_WithSlash" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestParamEncode_WithAmpersand" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestParamEncode_WithEquals" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestParamEncode_WithSpecialChars" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                </results>
+              </test-suite>
+          </results>
+        </test-suite>
+        <test-suite type="Namespace" name="TestksAwsHttpIntf" executed="true" result="Success" success="True" time="0.008" asserts="0" >
+          <results>
+              <test-suite type="Fixture" name="TTestHttpResponse" executed="True" result="Success" success="True" time="0.008" >
+                <results>
+                  <test-case name="TestStatusCode_DefaultsToZero" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestStatusCode_SetGet" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestETag_SetGet" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestLastModified_SetGet" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestContentAsString_EmptyByDefault" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestContentAsString_WithContent" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestHeaderValue_SetGet" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestHeaderValue_NonExistentKey" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestContentStream_SetCopiesData" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                </results>
+              </test-suite>
+          </results>
+        </test-suite>
+        <test-suite type="Namespace" name="TestksAwsRDS" executed="true" result="Success" success="True" time="0.009" asserts="0" >
+          <results>
+              <test-suite type="Fixture" name="TTestRDSFactory" executed="True" result="Success" success="True" time="0.002" >
+                <results>
+                  <test-case name="TestCreateAwsRDS_ReturnsValidInterface" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestInstanceList_Create" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                </results>
+              </test-suite>
+              <test-suite type="Fixture" name="TTestRDSInstanceList" executed="True" result="Success" success="True" time="0.003" >
+                <results>
+                  <test-case name="TestAddInstanceXml_IncreasesCount" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestAddMultipleInstances" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestClearList" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                </results>
+              </test-suite>
+              <test-suite type="Fixture" name="TTestRDSInstanceXmlParsing" executed="True" result="Success" success="True" time="0.003" >
+                <results>
+                  <test-case name="TestParseName" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestParseStatus_Available" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestParseStatus_Stopped" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                </results>
+              </test-suite>
+          </results>
+        </test-suite>
+        <test-suite type="Namespace" name="TestksAwsS3" executed="true" result="Success" success="True" time="2.457" asserts="0" >
+          <results>
+              <test-suite type="Fixture" name="TTestS3AclEnum" executed="True" result="Success" success="True" time="0.002" >
+                <results>
+                  <test-case name="TestAclEnumValues_AreDefined" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestAclEnumValues_AreDistinct" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                </results>
+              </test-suite>
+              <test-suite type="Fixture" name="TTestS3Factory" executed="True" result="Success" success="True" time="2.453" >
+                <results>
+                  <test-case name="TestCreateAwsS3_WithEnum" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestCreateAwsS3_WithString" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestCreateAwsS3_InvalidString" executed="True" result="Success" success="True" time="1.885" asserts="0" />
+                  <test-case name="TestCreateAwsS3_DifferentRegions" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                </results>
+              </test-suite>
+              <test-suite type="Fixture" name="TTestS3PutOptions" executed="True" result="Success" success="True" time="0.002" >
+                <results>
+                  <test-case name="TestPutOptions_DefaultAcl" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestPutOptions_SetAcl" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                </results>
+              </test-suite>
+          </results>
+        </test-suite>
+        <test-suite type="Namespace" name="TestksAwsSes" executed="true" result="Success" success="True" time="0.022" asserts="0" >
+          <results>
+              <test-suite type="Fixture" name="TTestSesMessageFactory" executed="True" result="Success" success="True" time="0.007" >
+                <results>
+                  <test-case name="TestCreateSesMessage_SingleRecipient" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestCreateSesMessage_SetsSender" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestCreateSesMessage_SetsSubject" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestCreateSesMessage_SetsBody" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestCreateSesMessage_HtmlDefaultsEmpty" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestCreateSesMessage_ReturnPathDefaultsEmpty" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestCreateSesMessage_MultipleRecipients" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestCreateSesMessage_MultipleRecipients_Count" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                </results>
+              </test-suite>
+              <test-suite type="Fixture" name="TTestSesMessageProperties" executed="True" result="Success" success="True" time="0.013" >
+                <results>
+                  <test-case name="TestRecipients_StartsEmpty" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestCC_StartsEmpty" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestBcc_StartsEmpty" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestReplyTo_StartsEmpty" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestSender_SetGet" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestSubject_SetGet" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestBody_SetGet" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestHtml_SetGet" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestReturnPath_SetGet" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestReturnPath_DefaultsEmpty" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestAddMultipleRecipients" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestAddMultipleCC" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestAddMultipleBcc" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestAddMultipleReplyTo" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                </results>
+              </test-suite>
+              <test-suite type="Fixture" name="TTestSesServiceFactory" executed="True" result="Success" success="True" time="0.001" >
+                <results>
+                  <test-case name="TestCreateSes_ReturnsValidInterface" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                </results>
+              </test-suite>
+          </results>
+        </test-suite>
+        <test-suite type="Namespace" name="TestksAwsSns" executed="true" result="Success" success="True" time="0.014" asserts="0" >
+          <results>
+              <test-suite type="Fixture" name="TTestSnsFactory" executed="True" result="Success" success="True" time="0.001" >
+                <results>
+                  <test-case name="TestCreateSNS_ReturnsValidInterface" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                </results>
+              </test-suite>
+              <test-suite type="Fixture" name="TTestSnsSubscriptionList" executed="True" result="Success" success="True" time="0.004" >
+                <results>
+                  <test-case name="TestAddSubscription_ReturnsInterface" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestAddSubscription_IncreasesCount" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestAddMultipleSubscriptions" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestClearList" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                </results>
+              </test-suite>
+              <test-suite type="Fixture" name="TTestSnsSubscriptionLoadFromXml" executed="True" result="Success" success="True" time="0.002" >
+                <results>
+                  <test-case name="TestLoadFromXml_AllFields" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestLoadFromXml_EmailProtocol" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                </results>
+              </test-suite>
+              <test-suite type="Fixture" name="TTestSnsSubscriptionProperties" executed="True" result="Success" success="True" time="0.006" >
+                <results>
+                  <test-case name="TestEndpoint_SetGet" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestOwner_SetGet" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestProtocol_SetGet" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestSubscriptionArn_SetGet" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                  <test-case name="TestTopicArn_SetGet" executed="True" result="Success" success="True" time="0.000" asserts="0" />
+                </results>
+              </test-suite>
+          </results>
+        </test-suite>
+    </results>
+  </test-suite>
+</test-results>

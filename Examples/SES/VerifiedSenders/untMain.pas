@@ -30,7 +30,7 @@ uses ksAwsSes, ksAwsBase;
 {$INCLUDE credentials.inc}
 
 const
-  C_AWS_RGN = awsEuWest1;
+  C_AWS_RGN = awsEuWest2;
 
 {$R *.dfm}
 

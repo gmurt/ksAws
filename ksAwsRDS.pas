@@ -53,13 +53,13 @@ type
 
 implementation
 
-uses ksAwsHttpIntf, ksAwsConst, Xml.xmldom, Xml.XMLIntf, Xml.XMLDoc;
+uses ksAwsHttpIntf, ksAwsConst, ksAwsXml;
 
 type
   TksAwsRDSInstance = class(TInterfacedObject, IksAwsRDSInstance)
   private
-    FXml: IXmlDocument;
-    FTags: TStrings;
+    FName: string;
+    FStatus: string;
     function GetName: string;
     function GetStatus: string;
   protected
@@ -67,7 +67,6 @@ type
     property Status: string read GetStatus;
   public
     constructor Create(AXml: string);
-    destructor Destroy; override;
   end;
 
   TksAwsRDS = class(TksAwsBaseService, IksAwsRDS)
@@ -88,20 +87,19 @@ end;
 
 procedure TksAwsRDS.ListInstances(AInstances: TksAwsRDSInstanceList);
 var
-  AXml: IXMLDocument;
-  AResponse: IXMLNode;
-  AItems: IXMLNode;
-  AItem: IXMLNode;
-  ICount: integer;
+  AXmlStr, ADBInstances, AInstanceXml: string;
+  AOffset, ABlockEnd: integer;
 begin
   AInstances.Clear;
-  AXml := ExecuteHttpXml(C_GET, 'DescribeDBInstances', Host, '', '', nil, nil, True, nil);
-  AResponse := AXml.ChildNodes['DescribeDBInstancesResponse'];
-  AItems := AResponse.ChildNodes['DescribeDBInstancesResult'].ChildNodes['DBInstances'];
-  for ICount := 0 to AItems.ChildNodes.Count-1 do
+  AXmlStr := ExecuteHttp(C_GET, 'DescribeDBInstances', Host, '', nil, nil, '', True, nil).ContentAsString;
+  ADBInstances := GetXmlTagValue(AXmlStr, 'DBInstances');
+  AOffset := 1;
+  while True do
   begin
-    AItem := AItems.ChildNodes[ICount];
-    AInstances.AddInstanceXml(AItem.XML);
+    AInstanceXml := GetXmlBlock(ADBInstances, 'DBInstance', AOffset, ABlockEnd);
+    if ABlockEnd = 0 then Break;
+    AInstances.AddInstanceXml('<DBInstance>' + AInstanceXml + '</DBInstance>');
+    AOffset := ABlockEnd;
   end;
 end;
 
@@ -119,25 +117,18 @@ end;
 
 constructor TksAwsRDSInstance.Create(AXml: string);
 begin
-  FTags := TStringList.Create;
-  FXml := TXmlDocument.Create(nil);
-  FXml.LoadFromXML(AXml);
-end;
-
-destructor TksAwsRDSInstance.Destroy;
-begin
-  FTags.Free;
-  inherited;
+  FName := GetXmlTagValue(AXml, 'DBInstanceIdentifier');
+  FStatus := GetXmlTagValue(AXml, 'DBInstanceStatus');
 end;
 
 function TksAwsRDSInstance.GetName: string;
 begin
-  Result := FXml.ChildNodes['DBInstance'].ChildNodes['DBInstanceIdentifier'].Text;
+  Result := FName;
 end;
 
 function TksAwsRDSInstance.GetStatus: string;
 begin
-  Result := FXml.ChildNodes['DBInstance'].ChildNodes['DBInstanceStatus'].Text;
+  Result := FStatus;
 end;
 
 { TksAwsRDSInstanceList }
