@@ -132,6 +132,7 @@ type
 
   TksAwsSES = class(TksAwsBaseService, IksAwsSES)
   protected
+    function GetApiVersion: string; override;
     function GetServiceName: string; override;
     function GetHostSubdomain: string; override;
     function GetVerificationStatus(AEmail: string): string; overload;
@@ -272,10 +273,13 @@ end;
 procedure TksAwsSES.CreateVerificationTemplate(ATemplateName, AFromEmail, ASubject, ABody: string);
 var
   AJson: TJsonObject;
-
+  AHeaders: TStrings;
 begin
   AJson := TJsonObject.Create;
+  AHeaders := TStringList.Create;
   try
+    AHeaders.Values['content-type'] := 'application/json';
+
     AJson.S['TemplateName'] := ATemplateName;
     AJson.S['FromEmailAddress'] := AFromEmail;
     AJson.S['TemplateSubject'] := ASubject;
@@ -283,31 +287,35 @@ begin
     AJson.S['SuccessRedirectionURL'] := '';
     AJson.S['FailureRedirectionURL'] := '';
 
-
-    ExecuteHttp('POST', 'CreateCustomVerificationEmailTemplate', Host, '/v2/email/custom-verification-email-templates',  nil, nil, AJson.ToString);
+    ExecuteHttp('POST', '', Host, '/v2/email/custom-verification-email-templates', AHeaders, nil, AJson.ToString);
   finally
     AJson.Free;
+    AHeaders.Free;
   end;
 end;
 
 procedure TksAwsSES.DeleteVerificationTemplate(ATemplateName: string);
 begin
-    ExecuteHttp('DELETE', 'DeleteCustomVerificationEmailTemplate', Host, '/v2/email/custom-verification-email-templates/'+ATemplateName, nil, nil, '');
+    ExecuteHttp('DELETE', '', Host, '/v2/email/custom-verification-email-templates/'+ATemplateName, nil, nil, '');
 
 end;
 
 procedure TksAwsSES.SendVerificationTemplate(ATemplateName, ARecipient: string);
 var
   AJson: TJsonObject;
-
+  AHeaders: TStrings;
 begin
   AJson := TJsonObject.Create;
+  AHeaders := TStringList.Create;
   try
+    AHeaders.Values['content-type'] := 'application/json';
+
     AJson.S['TemplateName'] := ATemplateName;
     AJson.S['EmailAddress'] := ARecipient;
-    ExecuteHttp('POST', 'SendCustomVerificationEmail', Host, '/v2/email/outbound-custom-verification-emails',  nil, nil, AJson.ToString);
+    ExecuteHttp('POST', '', Host, '/v2/email/outbound-custom-verification-emails', AHeaders, nil, AJson.ToString);
   finally
     AJson.Free;
+    AHeaders.Free;
   end;
 end;
 
@@ -322,6 +330,11 @@ begin
   finally
     AParams.Free;
   end;
+end;
+
+function TksAwsSES.GetApiVersion: string;
+begin
+  Result := C_SES_API_VERSION;
 end;
 
 function TksAwsSES.GetHostSubdomain: string;
@@ -420,7 +433,7 @@ begin
     repeat
       if ANextToken <> '' then
         AParams.Values['NextToken'] := ANextToken;
-      AData := ExecuteHttp('GET', 'ListEmailIdentities', Host, '/v2/email/identities', nil, AParams, '').ContentAsString;
+      AData := ExecuteHttp('GET', '', Host, '/v2/email/identities', nil, AParams, '').ContentAsString;
 
       AJson.FromJSON(AData);
 
@@ -448,10 +461,14 @@ end;
 function TksAwsSES.SendEmail(AMessage: IksAwsSesMessage): integer;
 var
   AJson: TJsonObject;
+  AHeaders: TStrings;
   AAddr: string;
 begin
   AJson := TJsonObject.Create;
+  AHeaders := TStringList.Create;
   try
+    AHeaders.Values['content-type'] := 'application/json';
+
     AJson.O['Content'].O['Simple'].O['Subject'].S['Charset'] := 'UTF-8';
     AJson.O['Content'].O['Simple'].O['Subject'].S['Data'] := AMessage.Subject;
 
@@ -484,9 +501,10 @@ begin
     if AMessage.ReturnPath <> '' then
       AJson.S['FeedbackForwardingEmailAddress'] := AMessage.ReturnPath;
 
-    Result := ExecuteHttp('POST', 'SendEmail', Host, '/v2/email/outbound-emails', nil, nil, AJson.ToString).StatusCode;
+    Result := ExecuteHttp('POST', '', Host, '/v2/email/outbound-emails', AHeaders, nil, AJson.ToString).StatusCode;
   finally
     AJson.Free;
+    AHeaders.Free;
   end;
 end;
 

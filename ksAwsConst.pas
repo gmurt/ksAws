@@ -35,6 +35,7 @@ const
 
   C_EC2_API_VERSION   = '2016-11-15';
   C_RDS_API_VERSION   = '2014-10-31';
+  C_SES_API_VERSION   = '2010-12-01';
   C_SNS_API_VERSION   = '2010-03-31';
 
   C_GET               = 'GET';

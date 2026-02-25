@@ -262,8 +262,12 @@ begin
   try
     if AQueryParams <> nil then
       AParams.AddStrings(AQueryParams);
-    AParams.Values['Action'] := AAction;
-    AParams.Values['Version'] := GetApiVersion;
+    if AAction <> '' then
+    begin
+      AParams.Values['Action'] := AAction;
+      if GetApiVersion <> '' then
+        AParams.Values['Version'] := GetApiVersion;
+    end;
 
 
 

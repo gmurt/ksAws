@@ -60,7 +60,7 @@ uses ksAwsConst, SysUtils,
   ;
 
 const
-  C_UNSAFE_CHARS: array[1..27] of Byte = (Ord(' '), Ord('"'), Ord(''''), Ord(':'), Ord(';'), Ord('<'), Ord('='), Ord('>'),
+  C_UNSAFE_CHARS: array[1..29] of Byte = (Ord(' '), Ord('"'), Ord(''''), Ord('*'), Ord('+'), Ord(':'), Ord(';'), Ord('<'), Ord('='), Ord('>'),
       Ord('@'), Ord('['), Ord(']'), Ord('^'), Ord('`'), Ord('{'), Ord('}'), Ord('|'), Ord('/'), Ord('\'), Ord('?'), Ord('#'),
       Ord('&'), Ord('!'), Ord('$'), Ord('('), Ord(')'), Ord(','), Ord('~'));
 
