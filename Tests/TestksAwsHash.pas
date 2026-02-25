@@ -40,6 +40,20 @@ type
     procedure TestParamEncode_WithEquals;
     [Test]
     procedure TestParamEncode_WithSpecialChars;
+    [Test]
+    procedure TestParamEncode_WithPlus;
+    [Test]
+    procedure TestParamEncode_WithAsterisk;
+    [Test]
+    procedure TestParamEncode_EmailWithPlus;
+    [Test]
+    procedure TestParamEncode_UnreservedCharsNotEncoded;
+    [Test]
+    procedure TestParamEncode_EmptyString;
+    [Test]
+    procedure TestParamEncode_PlusNotPassedThrough;
+    [Test]
+    procedure TestParamEncode_MultipleSpecialChars;
   end;
 
   [TestFixture]
@@ -172,6 +186,66 @@ begin
   AResult := ParamEncode('a:b@c');
   Assert.Contains(AResult, '%3A');
   Assert.Contains(AResult, '%40');
+end;
+
+procedure TTestUrlEncoding.TestParamEncode_WithPlus;
+begin
+  Assert.AreEqual('a%2Bb', ParamEncode('a+b'));
+end;
+
+procedure TTestUrlEncoding.TestParamEncode_WithAsterisk;
+begin
+  Assert.AreEqual('a%2Ab', ParamEncode('a*b'));
+end;
+
+procedure TTestUrlEncoding.TestParamEncode_EmailWithPlus;
+var
+  AResult: string;
+begin
+  AResult := ParamEncode('user+tag@example.com');
+  Assert.Contains(AResult, '%2B');
+  Assert.DoesNotContain(AResult, '+');
+  Assert.Contains(AResult, '%40');
+end;
+
+procedure TTestUrlEncoding.TestParamEncode_UnreservedCharsNotEncoded;
+begin
+  // AWS Sig V4 unreserved characters: A-Z a-z 0-9 - _ . ~
+  // These must NOT be percent-encoded
+  Assert.AreEqual('abc', ParamEncode('abc'));
+  Assert.AreEqual('ABC', ParamEncode('ABC'));
+  Assert.AreEqual('123', ParamEncode('123'));
+  Assert.AreEqual('-', ParamEncode('-'));
+  Assert.AreEqual('_', ParamEncode('_'));
+  Assert.AreEqual('.', ParamEncode('.'));
+end;
+
+procedure TTestUrlEncoding.TestParamEncode_EmptyString;
+begin
+  Assert.AreEqual('', ParamEncode(''));
+end;
+
+procedure TTestUrlEncoding.TestParamEncode_PlusNotPassedThrough;
+var
+  AResult: string;
+begin
+  // Ensure + is never left unencoded (critical for email addresses in SES)
+  AResult := ParamEncode('+');
+  Assert.AreEqual('%2B', AResult);
+end;
+
+procedure TTestUrlEncoding.TestParamEncode_MultipleSpecialChars;
+var
+  AResult: string;
+begin
+  // Test a string with multiple chars that need encoding
+  AResult := ParamEncode('a+b*c=d&e');
+  Assert.Contains(AResult, '%2B');
+  Assert.Contains(AResult, '%2A');
+  Assert.Contains(AResult, '%3D');
+  Assert.Contains(AResult, '%26');
+  Assert.DoesNotContain(AResult, '+');
+  Assert.DoesNotContain(AResult, '*');
 end;
 
 { TTestHMACSHA256 }

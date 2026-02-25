@@ -67,10 +67,73 @@ type
     procedure TestCreateSes_ReturnsValidInterface;
   end;
 
+  [TestFixture]
+  TTestSesServiceProperties = class
+  public
+    [Test]
+    procedure TestSesApiVersion;
+    [Test]
+    procedure TestSesServiceName;
+    [Test]
+    procedure TestSesHostSubdomain;
+    [Test]
+    procedure TestSesHost_EuWest1;
+    [Test]
+    procedure TestSesHost_UsEast1;
+  end;
+
 implementation
 
 uses
-  ksAwsBase, ksAwsSes;
+  ksAwsBase, ksAwsConst, ksAwsSes;
+
+type
+  TTestSesService = class(TksAwsBaseService)
+  protected
+    function GetServiceName: string; override;
+    function GetApiVersion: string; override;
+    function GetHostSubdomain: string; override;
+  public
+    function TestGetApiVersion: string;
+    function TestGetServiceName: string;
+    function TestGetHostSubdomain: string;
+    function TestGetHost: string;
+  end;
+
+function TTestSesService.GetServiceName: string;
+begin
+  Result := C_SERVICE_SES;
+end;
+
+function TTestSesService.GetApiVersion: string;
+begin
+  Result := C_SES_API_VERSION;
+end;
+
+function TTestSesService.GetHostSubdomain: string;
+begin
+  Result := 'email';
+end;
+
+function TTestSesService.TestGetApiVersion: string;
+begin
+  Result := GetApiVersion;
+end;
+
+function TTestSesService.TestGetServiceName: string;
+begin
+  Result := GetServiceName;
+end;
+
+function TTestSesService.TestGetHostSubdomain: string;
+begin
+  Result := GetHostSubdomain;
+end;
+
+function TTestSesService.TestGetHost: string;
+begin
+  Result := GetHost;
+end;
 
 { TTestSesMessageProperties }
 
@@ -297,9 +360,72 @@ begin
   Assert.IsNotNull(AService);
 end;
 
+{ TTestSesServiceProperties }
+
+procedure TTestSesServiceProperties.TestSesApiVersion;
+var
+  AService: TTestSesService;
+begin
+  AService := TTestSesService.Create('key', 'secret', awsEuWest1);
+  try
+    Assert.AreEqual('2010-12-01', AService.TestGetApiVersion);
+  finally
+    AService.Free;
+  end;
+end;
+
+procedure TTestSesServiceProperties.TestSesServiceName;
+var
+  AService: TTestSesService;
+begin
+  AService := TTestSesService.Create('key', 'secret', awsEuWest1);
+  try
+    Assert.AreEqual('ses', AService.TestGetServiceName);
+  finally
+    AService.Free;
+  end;
+end;
+
+procedure TTestSesServiceProperties.TestSesHostSubdomain;
+var
+  AService: TTestSesService;
+begin
+  AService := TTestSesService.Create('key', 'secret', awsEuWest1);
+  try
+    Assert.AreEqual('email', AService.TestGetHostSubdomain);
+  finally
+    AService.Free;
+  end;
+end;
+
+procedure TTestSesServiceProperties.TestSesHost_EuWest1;
+var
+  AService: TTestSesService;
+begin
+  AService := TTestSesService.Create('key', 'secret', awsEuWest1);
+  try
+    Assert.AreEqual('email.eu-west-1.amazonaws.com', AService.TestGetHost);
+  finally
+    AService.Free;
+  end;
+end;
+
+procedure TTestSesServiceProperties.TestSesHost_UsEast1;
+var
+  AService: TTestSesService;
+begin
+  AService := TTestSesService.Create('key', 'secret', awsUsEast1);
+  try
+    Assert.AreEqual('email.us-east-1.amazonaws.com', AService.TestGetHost);
+  finally
+    AService.Free;
+  end;
+end;
+
 initialization
   TDUnitX.RegisterTestFixture(TTestSesMessageProperties);
   TDUnitX.RegisterTestFixture(TTestSesMessageFactory);
   TDUnitX.RegisterTestFixture(TTestSesServiceFactory);
+  TDUnitX.RegisterTestFixture(TTestSesServiceProperties);
 
 end.

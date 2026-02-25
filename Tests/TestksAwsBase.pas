@@ -92,6 +92,19 @@ type
     procedure TestAuthHeader_SpaceAfterCommas;
   end;
 
+  [TestFixture]
+  TTestCanonicalRequestContentType = class
+  public
+    [Test]
+    procedure TestCanonical_ContentTypeHeaderSigned;
+    [Test]
+    procedure TestCanonical_ContentTypeHeaderLowerCased;
+    [Test]
+    procedure TestCanonical_ContentTypeInSignedHeadersList;
+    [Test]
+    procedure TestCanonical_NoQueryString_EmptyLine;
+  end;
+
 implementation
 
 uses
@@ -558,10 +571,134 @@ begin
   Assert.DoesNotContain(AHeader, 'x-amz-date,Signature');
 end;
 
+{ TTestCanonicalRequestContentType }
+
+procedure TTestCanonicalRequestContentType.TestCanonical_ContentTypeHeaderSigned;
+var
+  AService: TTestAwsService;
+  AHeaders: TStringList;
+  AStream: TStringStream;
+  AResult: string;
+begin
+  AService := TTestAwsService.Create('key', 'secret', awsUsEast1);
+  AHeaders := TStringList.Create;
+  AStream := TStringStream.Create('{"test":"data"}', TEncoding.UTF8);
+  try
+    AHeaders.Values['content-type'] := 'application/json';
+    AHeaders.Values['host'] := 'email.us-east-1.amazonaws.com';
+    AHeaders.Values['x-amz-date'] := '20250101T120000Z';
+    AHeaders.Values['x-amz-content-sha256'] := GetHashSHA256Hex('{"test":"data"}');
+    (AHeaders as TStringList).Sort;
+
+    AResult := AService.TestGenerateCanonicalRequest('POST', '/v2/email/outbound-emails', AStream, AHeaders, nil);
+    // content-type header should appear in the canonical headers section
+    Assert.Contains(AResult, 'content-type:application/json');
+  finally
+    AStream.Free;
+    AHeaders.Free;
+    AService.Free;
+  end;
+end;
+
+procedure TTestCanonicalRequestContentType.TestCanonical_ContentTypeHeaderLowerCased;
+var
+  AService: TTestAwsService;
+  AHeaders: TStringList;
+  AStream: TStringStream;
+  AResult: string;
+begin
+  AService := TTestAwsService.Create('key', 'secret', awsUsEast1);
+  AHeaders := TStringList.Create;
+  AStream := TStringStream.Create('{}', TEncoding.UTF8);
+  try
+    // Pass Content-Type with mixed case - canonical request should lowercase it
+    AHeaders.Values['Content-Type'] := 'application/json';
+    AHeaders.Values['host'] := 'email.us-east-1.amazonaws.com';
+    AHeaders.Values['x-amz-date'] := '20250101T120000Z';
+    AHeaders.Values['x-amz-content-sha256'] := GetHashSHA256Hex('{}');
+    (AHeaders as TStringList).Sort;
+
+    AResult := AService.TestGenerateCanonicalRequest('POST', '/v2/email/outbound-emails', AStream, AHeaders, nil);
+    Assert.Contains(AResult, 'content-type:application/json');
+    // Should not contain the mixed-case version
+    Assert.AreEqual(0, Pos('Content-Type:', AResult));
+  finally
+    AStream.Free;
+    AHeaders.Free;
+    AService.Free;
+  end;
+end;
+
+procedure TTestCanonicalRequestContentType.TestCanonical_ContentTypeInSignedHeadersList;
+var
+  AService: TTestAwsService;
+  AHeaders: TStringList;
+  AStream: TStringStream;
+  AResult: string;
+begin
+  AService := TTestAwsService.Create('key', 'secret', awsUsEast1);
+  AHeaders := TStringList.Create;
+  AStream := TStringStream.Create('{}', TEncoding.UTF8);
+  try
+    AHeaders.Values['content-type'] := 'application/json';
+    AHeaders.Values['host'] := 'email.us-east-1.amazonaws.com';
+    AHeaders.Values['x-amz-date'] := '20250101T120000Z';
+    AHeaders.Values['x-amz-content-sha256'] := GetHashSHA256Hex('{}');
+    (AHeaders as TStringList).Sort;
+
+    AResult := AService.TestGenerateCanonicalRequest('POST', '/v2/email/outbound-emails', AStream, AHeaders, nil);
+    // The signed headers list should include content-type
+    Assert.Contains(AResult, 'content-type;host;x-amz-content-sha256;x-amz-date');
+  finally
+    AStream.Free;
+    AHeaders.Free;
+    AService.Free;
+  end;
+end;
+
+procedure TTestCanonicalRequestContentType.TestCanonical_NoQueryString_EmptyLine;
+var
+  AService: TTestAwsService;
+  AHeaders: TStringList;
+  AStream: TStringStream;
+  AResult: string;
+  ALines: TStringList;
+begin
+  // When no query params are passed, the canonical request should have
+  // an empty query string line (just LF after the URI)
+  AService := TTestAwsService.Create('key', 'secret', awsUsEast1);
+  AHeaders := TStringList.Create;
+  AStream := TStringStream.Create('', TEncoding.UTF8);
+  try
+    AHeaders.Values['host'] := 'email.us-east-1.amazonaws.com';
+    AHeaders.Values['x-amz-date'] := '20250101T120000Z';
+    AHeaders.Values['x-amz-content-sha256'] := C_EMPTY_HASH;
+    (AHeaders as TStringList).Sort;
+
+    AResult := AService.TestGenerateCanonicalRequest('GET', '/v2/email/identities', AStream, AHeaders, nil);
+    // Split by LF and check: line 0=verb, line 1=URI, line 2=query string (should be empty)
+    ALines := TStringList.Create;
+    try
+      ALines.LineBreak := #10;
+      ALines.Text := AResult;
+      Assert.AreEqual('GET', ALines[0], 'Line 0 should be the verb');
+      Assert.AreEqual('/v2/email/identities', ALines[1], 'Line 1 should be the URI');
+      Assert.AreEqual('', ALines[2], 'Line 2 should be empty (no query params)');
+    finally
+      ALines.Free;
+    end;
+  finally
+    AStream.Free;
+    AHeaders.Free;
+    AService.Free;
+  end;
+end;
+
 initialization
   TDUnitX.RegisterTestFixture(TTestStringToRegion);
   TDUnitX.RegisterTestFixture(TTestBaseServiceProperties);
   TDUnitX.RegisterTestFixture(TTestCanonicalRequest);
   TDUnitX.RegisterTestFixture(TTestAuthHeaderFormat);
+  TDUnitX.RegisterTestFixture(TTestCanonicalRequestContentType);
 
 end.
