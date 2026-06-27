@@ -50,6 +50,16 @@ type
     procedure ListInstances(AInstances: TksAwsEc2InstanceList);
     procedure StartInstances(AInstanceIDs: array of string);
     procedure StopInstances(AInstanceIDs: array of string);
+    // Security-group ingress management. DescribeSecurityGroupRules returns the
+    // raw DescribeSecurityGroups XML for AGroupId (caller parses it). Authorize
+    // adds one inbound rule using the nested IpPermissions form so the optional
+    // rule Description is applied; Revoke removes a rule, matched by AWS on
+    // protocol + port range + CIDR (description is not part of the match).
+    function DescribeSecurityGroupRules(AGroupId: string): string;
+    procedure AuthorizeSecurityGroupIngress(AGroupId, AProtocol: string;
+      AFromPort, AToPort: Integer; ACidr, ADescription: string);
+    procedure RevokeSecurityGroupIngress(AGroupId, AProtocol: string;
+      AFromPort, AToPort: Integer; ACidr: string);
   end;
 
   function CreateAwsEc2(AAccessKey, ASecretKey: string; ARegion: TksAwsRegion): IksAwsEc2;
@@ -86,6 +96,11 @@ type
     procedure ListInstances(AInstances: TksAwsEc2InstanceList);
     procedure StartInstances(AInstanceIDs: array of string);
     procedure StopInstances(AInstanceIDs: array of string);
+    function DescribeSecurityGroupRules(AGroupId: string): string;
+    procedure AuthorizeSecurityGroupIngress(AGroupId, AProtocol: string;
+      AFromPort, AToPort: Integer; ACidr, ADescription: string);
+    procedure RevokeSecurityGroupIngress(AGroupId, AProtocol: string;
+      AFromPort, AToPort: Integer; ACidr: string);
   end;
 
 function CreateAwsEc2(AAccessKey, ASecretKey: string; ARegion: TksAwsRegion): IksAwsEc2;
@@ -200,6 +215,68 @@ begin
     for ICount := Low(AInstanceIDs) to High(AInstanceIDs) do
       AParams.Values['InstanceId.'+IntToStr(ICount+1)] := AInstanceIDs[ICount];
     ExecuteHttp(C_GET, 'StopInstances', Host, '', nil, AParams, '', True, nil);
+  finally
+    AParams.Free;
+  end;
+end;
+
+function TksAwsEC2.DescribeSecurityGroupRules(AGroupId: string): string;
+var
+  AParams: TStrings;
+begin
+  // Classic DescribeSecurityGroups action, filtered to a single group via the
+  // GroupId.1 parameter. The XML body (securityGroupInfo > item > ipPermissions
+  // > item > ipRanges > item > cidrIp/description) is returned verbatim for the
+  // caller to parse.
+  AParams := TStringList.Create;
+  try
+    AParams.Values['GroupId.1'] := AGroupId;
+    Result := ExecuteHttp(C_GET, 'DescribeSecurityGroups', Host, '', nil, AParams, '', True, nil).ContentAsString;
+  finally
+    AParams.Free;
+  end;
+end;
+
+procedure TksAwsEC2.AuthorizeSecurityGroupIngress(AGroupId, AProtocol: string;
+  AFromPort, AToPort: Integer; ACidr, ADescription: string);
+var
+  AParams: TStrings;
+begin
+  // Nested IpPermissions form: this is the ONLY form that lets us attach a
+  // Description to the CIDR range. The library URL-encodes both the dotted
+  // parameter names and the CIDR slash (-> %2F) consistently in the signed
+  // canonical request and on the wire, so values are passed raw here.
+  AParams := TStringList.Create;
+  try
+    AParams.Values['GroupId'] := AGroupId;
+    AParams.Values['IpPermissions.1.IpProtocol'] := AProtocol;
+    AParams.Values['IpPermissions.1.FromPort'] := IntToStr(AFromPort);
+    AParams.Values['IpPermissions.1.ToPort'] := IntToStr(AToPort);
+    AParams.Values['IpPermissions.1.IpRanges.1.CidrIp'] := ACidr;
+    if ADescription <> '' then
+      AParams.Values['IpPermissions.1.IpRanges.1.Description'] := ADescription;
+    ExecuteHttp(C_GET, 'AuthorizeSecurityGroupIngress', Host, '', nil, AParams, '', True, nil);
+  finally
+    AParams.Free;
+  end;
+end;
+
+procedure TksAwsEC2.RevokeSecurityGroupIngress(AGroupId, AProtocol: string;
+  AFromPort, AToPort: Integer; ACidr: string);
+var
+  AParams: TStrings;
+begin
+  // Flat form: AWS matches the rule to revoke on protocol + port range + CIDR
+  // (the description is ignored on revoke), so the simpler top-level
+  // parameters are sufficient and reliable.
+  AParams := TStringList.Create;
+  try
+    AParams.Values['GroupId'] := AGroupId;
+    AParams.Values['IpProtocol'] := AProtocol;
+    AParams.Values['FromPort'] := IntToStr(AFromPort);
+    AParams.Values['ToPort'] := IntToStr(AToPort);
+    AParams.Values['CidrIp'] := ACidr;
+    ExecuteHttp(C_GET, 'RevokeSecurityGroupIngress', Host, '', nil, AParams, '', True, nil);
   finally
     AParams.Free;
   end;

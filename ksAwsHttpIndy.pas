@@ -34,9 +34,6 @@ implementation
 
 uses Classes, IdHttp, IdSSL, IdSSLOpenSSL, SysUtils;
 
-var
-  ASsl: TIdSSLIOHandlerSocketOpenSSL;
-
 type
   TksIdHttp = class(TIdHTTP);
 
@@ -72,8 +69,10 @@ end;
 function TksAwsIndyHttp.CreateHttp(AHeaders: TStrings): TksIdHttp;
 var
   ICount: integer;
+  ASsl: TIdSSLIOHandlerSocketOpenSSL;
 begin
   Result := TksIdHttp.Create;
+  ASsl := TIdSSLIOHandlerSocketOpenSSL.Create(Result);
   Result.HandleRedirects := False;
   Result.IOHandler := ASsl;
   Result.HTTPOptions := Result.HTTPOptions + [hoForceEncodeParams];
@@ -87,8 +86,12 @@ var
   AHttp: TIdHttp;
 begin
   AHttp := CreateHttp(AHeaders);
-  AHttp.Delete(AUrl);
-  Result := ResponseToKsResponse(AHttp.Response);
+  try
+    AHttp.Delete(AUrl);
+    Result := ResponseToKsResponse(AHttp.Response);
+  finally
+    AHttp.Free;
+  end;
 end;
 
 function TksAwsIndyHttp.Get(AUrl: string; AHeaders: TStrings; const AResponseStream: TStream = nil): IksAwsHttpResponse;
@@ -189,14 +192,6 @@ begin
     AHttp.Free;
   end;
 end;
-
-initialization
-
-  ASsl := TIdSSLIOHandlerSocketOpenSSL.Create(nil);
-
-finalization
-
-  ASsl.Free;
 
 end.
 

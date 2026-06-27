@@ -70,7 +70,8 @@ type
     function GetVerificationStatus(AEmail: string): string;
     function ListEmailIdentities: TEmailIdentities;
 
-    procedure CreateVerificationTemplate(ATemplateName, AFromEmail, ASubject, ABody: string);
+    procedure CreateVerificationTemplate(ATemplateName, AFromEmail, ASubject, ABody,
+      ASuccessUrl, AFaulureUrl: string);
     procedure DeleteVerificationTemplate(ATemplateName: string);
     procedure SendVerificationTemplate(ATemplateName, ARecipient: string);
 
@@ -137,7 +138,12 @@ type
     function GetHostSubdomain: string; override;
     function GetVerificationStatus(AEmail: string): string; overload;
     function ListEmailIdentities: TEmailIdentities;
-    procedure CreateVerificationTemplate(ATemplateName, AFromEmail, ASubject, ABody: string);
+    procedure CreateVerificationTemplate(ATemplateName,
+                                         AFromEmail,
+                                         ASubject,
+                                         ABody,
+                                         ASuccessUrl,
+                                         AFaulureUrl: string);
     procedure DeleteVerificationTemplate(ATemplateName: string);
     procedure SendVerificationTemplate(ATemplateName, ARecipient: string);
     procedure DeleteIdentity(AIdentity: string);
@@ -270,7 +276,12 @@ end;
 
 { TksAwsSES }
 
-procedure TksAwsSES.CreateVerificationTemplate(ATemplateName, AFromEmail, ASubject, ABody: string);
+procedure TksAwsSES.CreateVerificationTemplate(ATemplateName,
+                                               AFromEmail,
+                                               ASubject,
+                                               ABody,
+                                               ASuccessUrl,
+                                               AFaulureUrl: string);
 var
   AJson: TJsonObject;
   AHeaders: TStrings;
@@ -284,8 +295,8 @@ begin
     AJson.S['FromEmailAddress'] := AFromEmail;
     AJson.S['TemplateSubject'] := ASubject;
     AJson.S['TemplateContent'] := ABody;
-    AJson.S['SuccessRedirectionURL'] := '';
-    AJson.S['FailureRedirectionURL'] := '';
+    AJson.S['SuccessRedirectionURL'] := ASuccessUrl;
+    AJson.S['FailureRedirectionURL'] := AFaulureUrl;
 
     ExecuteHttp('POST', '', Host, '/v2/email/custom-verification-email-templates', AHeaders, nil, AJson.ToString);
   finally

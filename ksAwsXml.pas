@@ -1,5 +1,11 @@
 unit ksAwsXml;
 
+// [NomNom local patch] Silence W1050 "WideChar reduced to byte char in set
+// expressions" (lines ~27/~60). The NomNom server build runs FinalBuilder with
+// warnings-as-errors, and this benign vendored warning would otherwise fail the
+// Release build. Re-apply if ksAws is updated.
+{$WARN WIDECHAR_REDUCED OFF}
+
 interface
 
 function GetXmlTagValue(const AXml, ATag: string): string;
