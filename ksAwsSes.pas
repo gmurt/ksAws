@@ -434,7 +434,9 @@ var
   AObj: TJsonObject;
   AIdentity: TEmailIdentity;
 begin
-  Result := [];
+  // Pre-XE7 compatibility
+  // Result := [];
+  SetLength(Result, 0); 
 
   AParams := TStringList.Create;
   AJson := TJsonObject.Create;
@@ -455,7 +457,10 @@ begin
           AIdentity.Identity := AObj.S['IdentityName'];
           AIdentity.&Type := AObj.S['IdentityType'];
           AIdentity.Verified := AObj.B['SendingEnabled'];
-          Result := Result + [AIdentity];
+          // Pre-XE7 compatibility
+          // Result := Result + [AIdentity];
+          SetLength(Result, Length(Result) + 1);
+          Result[High(Result)] := AIdentity;
         end;
       end;
 

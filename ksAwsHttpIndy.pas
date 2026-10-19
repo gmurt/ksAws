@@ -73,6 +73,10 @@ var
 begin
   Result := TksIdHttp.Create;
   ASsl := TIdSSLIOHandlerSocketOpenSSL.Create(Result);
+  // AWS endpoints (SES/S3/etc.) require TLS 1.2 or newer. Indy defaults to DEF_SSLVERSIONS=[sslvTLSv1]
+  // (i.e. TLS 1.0 only), which makes AWS reject the handshake with "tlsv1 alert protocol version"
+  // (OpenSSL error 1409442E). Force TLS 1.2 so the connection succeeds.
+  ASsl.SSLOptions.SSLVersions := [sslvTLSv1_2];
   Result.HandleRedirects := False;
   Result.IOHandler := ASsl;
   Result.HTTPOptions := Result.HTTPOptions + [hoForceEncodeParams];
