@@ -28,6 +28,13 @@ interface
 
 {$I include.inc}
 
+// USE_INDY keeps Indy for the URL encoding (IdURI) and the TIdBytes / text
+// encoding helpers (IdGlobal), which are plain Pascal. Hashing no longer goes
+// through Indy: TIdHashSHA256 and TIdHMACSHA256 need the OpenSSL 1.0.2 DLLs
+// (libeay32 / ssleay32, unsupported since 2019), so SHA-256 and HMAC-SHA256
+// below use System.Hash instead and nothing here loads OpenSSL. The bytes fed
+// to each hash are produced exactly as Indy produced them, so every hash,
+// signature and header value is unchanged.
 {$DEFINE USE_INDY}
 
 uses Classes {$IFDEF USE_INDY} ,IdGlobal {$ENDIF};
@@ -53,7 +60,7 @@ implementation
 uses ksAwsConst, SysUtils,
 
   {$IFDEF USE_INDY}
-  IdHashSHA, IdHMAC, IdHMACSHA1, IdSSLOpenSSL, IdURI
+  System.Hash, IdURI
   {$ELSE}
   //System.Hash, System.NetEncoding
   {$ENDIF}
@@ -93,55 +100,66 @@ begin
   Result := LowerCase(CalculateHMACSHA256Hex(AStringToSign, ASigningKeyIndy));
 end;
 
+function ToIdBytes(const AValue: TBytes): TIdBytes;
+begin
+  SetLength(Result, Length(AValue));
+  if Length(AValue) > 0 then
+    Move(AValue[0], Result[0], Length(AValue));
+end;
+
+function FromIdBytes(const AValue: TIdBytes): TBytes;
+begin
+  SetLength(Result, Length(AValue));
+  if Length(AValue) > 0 then
+    Move(AValue[0], Result[0], Length(AValue));
+end;
+
+// SHA-256 of the bytes from the stream's current position to its end - the
+// bytes Indy's TIdHash.HashStream(AStream) hashed.
+function Sha256OfRemaining(AStream: TStream): TIdBytes;
+var
+  AHash: THashSHA2;
+  ABuffer: TBytes;
+  ARead: Integer;
+begin
+  AHash := THashSHA2.Create(THashSHA2.TSHA2Version.SHA256);
+  SetLength(ABuffer, 64 * 1024);
+  repeat
+    ARead := AStream.Read(ABuffer[0], Length(ABuffer));
+    if ARead > 0 then
+      AHash.Update(ABuffer, ARead);
+  until ARead <= 0;
+  Result := ToIdBytes(AHash.HashAsBytes);
+end;
+
 function GetHashSHA256Hex(AValue: string): string;
 var
-  ASha256: TIdHashSHA256;
+  AStream: TMemoryStream;
 begin
-  if TIdHashSHA256.IsAvailable then
-  begin
-   ASha256:= TIdHashSHA256.Create;
-   try
-     Result := LowerCase(ASha256.HashStringAsHex(AValue));
-   finally
-    ASha256.Free;
-   end;
+  // Indy's TIdHash.HashString path, step for step: the string is written with
+  // Indy's default text encoding (ASCII, so a non-ASCII character becomes
+  // '?'), then hashed from the start.
+  AStream := TMemoryStream.Create;
+  try
+    WriteStringToStream(AStream, AValue);
+    AStream.Position := 0;
+    Result := LowerCase(ToHex(Sha256OfRemaining(AStream)));
+  finally
+    AStream.Free;
   end;
 end;
 
 function GetHashSHA256Hex(AValue: TStream): string;
-var
-  ASha256: TIdHashSHA256;
 begin
-  if TIdHashSHA256.IsAvailable then
-  begin
-    ASha256 := TIdHashSHA256.Create;
-    try
-      Result := LowerCase(ASha256.HashStreamAsHex(AValue));
-      AValue.Position := 0;
-    finally
-      ASha256.Free;
-    end;
-  end;
+  Result := LowerCase(ToHex(Sha256OfRemaining(AValue)));
+  AValue.Position := 0;
 end;
 
 function CalculateHMACSHA256(const AValue: string; const AKey: TIdBytes): TIdBytes;
-var
-  hmac: TIdHMACSHA256;
 begin
-  LoadOpenSSLLibrary;
-  if not TIdHashSHA256.IsAvailable then
-    raise Exception.Create('SHA256 hashing is not available!');
-  hmac := TIdHMACSHA256.Create;
-  try
-
-    hmac.Key := AKey;
-    Result := hmac.HashValue(IndyTextEncoding_UTF8.GetBytes( AValue));
-
-
-
-  finally
-    hmac.Free;
-  end;
+  Result := ToIdBytes(THashSHA2.GetHMACAsBytes(
+    FromIdBytes(IndyTextEncoding_UTF8.GetBytes(AValue)), FromIdBytes(AKey),
+    THashSHA2.TSHA2Version.SHA256));
 end;
 
 function CalculateHMACSHA256Hex(const AValue: string; const AKey: TIdBytes): string;
@@ -196,12 +214,6 @@ begin
   Result := THash.DigestAsString(CalculateHMACSHA256(AValue, AKey));
 end;
        *)
-{$ENDIF}
-
-initialization
-
-{$IFDEF USE_INDY}
-  LoadOpenSSLLibrary;
 {$ENDIF}
 
 end.
